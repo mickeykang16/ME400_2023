@@ -56,13 +56,14 @@ private:
 
     // PUBLISHERS - DATA
     /// \brief Publisher for accelerometer data.
-    ros::Publisher m_publisher_accelerometer;
+    ros::Publisher m_publisher_imu;
+    // ros::Publisher m_publisher_accelerometer;
     /// \brief Publisher for gyroscope data.
-    ros::Publisher m_publisher_gyroscope;
+    // ros::Publisher m_publisher_gyroscope;
     /// \brief Publisher for magnetometer data.
-    ros::Publisher m_publisher_magnetometer;
+    // ros::Publisher m_publisher_magnetometer;
     /// \brief Publisher for temperature data.
-    ros::Publisher m_publisher_temperature;
+    // ros::Publisher m_publisher_temperature;
 
     // SERVICES
     /// \brief Service server for calibrating the gyroscope.
