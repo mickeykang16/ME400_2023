@@ -1,6 +1,0 @@
-[submodule "ros-driver_mpu9250"]
-	path = ros-driver_mpu9250
-	url = https://github.com/pcdangio/ros-driver_mpu9250
-[submodule "ros-sensor_msgs_ext"]
-	path = ros-sensor_msgs_ext
-	url = https://github.com/pcdangio/ros-sensor_msgs_ext
