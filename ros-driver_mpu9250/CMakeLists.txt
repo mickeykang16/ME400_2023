@@ -5,6 +5,8 @@ project(driver_mpu9250)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  sensor_msgs_ext
+
 )
 
 # Find pigpio for building rpi node.
