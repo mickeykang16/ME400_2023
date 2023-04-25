@@ -1,10 +1,15 @@
 <launch>
-  <node name="imunode" pkg="imu" type="imutest.py" output="screen">
-  </node>
-  <node name="processor_node" pkg="KAIST_ME_400" type="lidar_display.py" output="screen">
-  </node>
-  <node name="talker" pkg="loop_gen" type="loop_generator.py" output="screen">
-  </node>
-  <include file="$(find rplidar_ros)/launch/rplidar.launch" />
-</launch>
+    <node pkg="tf" type="static_transform_publisher" name="laser_to_world" args="0 0 0 0 1 0 0 world imu 200" />
+    <node pkg="tf" type="static_transform_publisher" name="imu_to_world" args="0 0 0 1 0 0 0 world laser 200" />
+    <!-- x, y, z, yaw, pitch, roll, frame_id, child_frame_id, period -->
+    <node pkg="imu_complementary_filter" type="complementary_filter_node" name="complementary_filter_gain_node" output="screen">
+    <!-- Can set param -->
+    </node>
+    <!-- <include file="$(find rplidar_ros)/launch/rplidar.launch">
+    <include/> -->
+    <!-- <node pkg="driver_mpu9250" type="driver_mpu9250_rpi" name="driver_mpu9250_rpi" args="-interrupt_gpio_pin">
+    </node> -->
 
+    <include file="$(find laser_line_extraction)/launch/example.launch"/>
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find laser_line_extraction)/rviz/laser_setting.rviz" />
+</launch>

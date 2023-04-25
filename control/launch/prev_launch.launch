@@ -1,0 +1,10 @@
+<launch>
+  <node name="imunode" pkg="imu" type="imutest.py" output="screen">
+  </node>
+  <node name="processor_node" pkg="KAIST_ME_400" type="lidar_display.py" output="screen">
+  </node>
+  <node name="talker" pkg="loop_gen" type="loop_generator.py" output="screen">
+  </node>
+  <include file="$(find rplidar_ros)/launch/rplidar.launch" />
+</launch>
+

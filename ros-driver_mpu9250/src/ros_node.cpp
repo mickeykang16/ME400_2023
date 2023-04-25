@@ -159,6 +159,10 @@ void ros_node::deinitialize_driver()
 void ros_node::data_callback(driver::data data)
 {
     sensor_msgs::Imu msg;
+    // Add proper header
+    msg.header.frame_id = "imu";
+    msg.header.stamp = ros::Time::now(); 
+    
     msg.linear_acceleration.x = static_cast<double>(data.accel_x) * 9.80665;
     msg.linear_acceleration.y = static_cast<double>(data.accel_y) * 9.80665;
     msg.linear_acceleration.z = static_cast<double>(data.accel_z) * 9.80665;
