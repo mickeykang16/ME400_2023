@@ -192,6 +192,8 @@ catkin_install_python(PROGRAMS
 # install(FILES
 #   # myfile1
 #   # myfile2
+#   scripts/
+#   data/
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 

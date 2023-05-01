@@ -4,6 +4,7 @@ import numpy as np
 import math
 # Import the PCA9685 module.
 from adafruit_pca9685 import PCA9685
+import rospkg
 PWM_FREQUENCY = 50
 MAX_THROTTLE_MS = 2.0
 MIN_THROTTLE_MS = 1.0
@@ -12,6 +13,9 @@ GRAVITY=9.81
 # use SI unit excpet unit is specified
 class PWM_control:
     def __init__(self, bidirectional=False, radius_cm = 19.0):
+        rospack = rospkg.RosPack()
+        rospack.list()
+                
         # i2c_bus = busio.I2C(SCL, SDA)
         i2c_bus = busio.I2C(1, 0)
         # Create a simple PCA9685 class instance.
@@ -25,7 +29,7 @@ class PWM_control:
         # init throttle thrust mapping
         self.thrust_map = []
         self.zero_throttle_idx = -1
-        f = open("/home/pi/thrust.txt", 'r')
+        f = open(rospack.get_path('hover_control') + "/data/thrust_new.txt", 'r')
         lines = f.readlines()
         idx = 0
         for line in lines:
@@ -42,7 +46,7 @@ class PWM_control:
             idx = idx + 1
         assert self.zero_throttle_idx > 0
         self.thrust_map.reverse()
-        # print(self.thrust_map)
+        print(self.thrust_map)
         
         # init control_matrix
         #        -r        r        r

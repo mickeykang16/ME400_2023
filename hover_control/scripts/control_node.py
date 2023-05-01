@@ -5,6 +5,7 @@ import math
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu
 from PWM_control import PWM_control
+import rospkg
 # from tf.transformations import euler_from_quaternion
 def euler_from_quaternion(x, y, z, w):
         """
@@ -30,19 +31,25 @@ def euler_from_quaternion(x, y, z, w):
     
 class HovercraftController:
     def __init__(self):
+               
         self.controller = PWM_control(bidirectional=True)
         self.imu_subscriber = rospy.Subscriber("imu/data", Imu, self.imu_callback)
         self.timer = rospy.Timer(rospy.Duration(0.02), self.timer_callback)
         self.is_first_imu = False
         self.initial_yaw = 0.0
         self.yaw = 0.0
+        self.yaw_velocity = 0.0
+        
         
     def timer_callback(self, event):
         if (self.is_first_imu):
+            P = 0.08
+            D = 0.01
             yaw_error_deg = (self.yaw - self.initial_yaw) * 180 / math.pi
-            self.controller.force_control(0.0, 0.0, -0.08 * yaw_error_deg)
+            self.controller.force_control(0.0, 0.0, \
+                -P * yaw_error_deg - D * self.yaw_velocity)
             # print("current yaw: ", self.yaw * 180 / math.pi)
-            print(yaw_error_deg)
+            # print(yaw_error_deg)
             
     def imu_callback(self, msg):
         orientation_q = msg.orientation
@@ -56,6 +63,7 @@ class HovercraftController:
             self.is_first_imu = True
         
         self.yaw = yaw
+        self.yaw_velocity = msg.angular_velocity.z
 
     
 if __name__=='__main__':
