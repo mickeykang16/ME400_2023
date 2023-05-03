@@ -12,7 +12,8 @@ GRAVITY=9.81
 
 # use SI unit excpet unit is specified
 class PWM_control:
-    def __init__(self, bidirectional=False, radius_cm = 19.0):
+    def __init__(self, bidirectional=False, max = 60.0, radius_cm = 19.0):
+        self.throttle_reverse = [True, False, False, False]
         rospack = rospkg.RosPack()
         rospack.list()
                 
@@ -25,12 +26,13 @@ class PWM_control:
         self.pwm_ = pca
         self.throttle_ = [0.0, 0.0, 0.0, 0.0]
         self.bidirectional = bidirectional
-        
+        self.max_throttle = max
         # init throttle thrust mapping
         self.thrust_map = []
         self.zero_throttle_idx = -1
-        f = open(rospack.get_path('hover_control') + "/data/thrust_new.txt", 'r')
-        lines = f.readlines()
+        #f = open(rospack.get_path('hover_control') + "/data/thrust_new.txt", 'r')
+        with open('/home/pi/thrust_new.txt', 'r') as f:
+            lines = f.readlines()
         idx = 0
         for line in lines:
             tokens = line.strip().split()
@@ -70,7 +72,16 @@ class PWM_control:
             throttle_percent = min(100.0, max(0.0, throttle_input))
         assert channel >= 0 and channel <= 3, 'There are only four channels [0, 3]'
 
+        if throttle_percent > self.max_throttle:
+            throttle_percent = self.max_throttle
+        elif throttle_percent < -self.max_throttle:
+            throttle_percent = -self.max_throttle
+        
         self.throttle_[channel] = throttle_percent
+        
+        if (self.throttle_reverse[channel] == True):
+            throttle_percent = -throttle_percent
+            
         if self.bidirectional:
             ms = MIN_THROTTLE_MS + (100.0 + throttle_percent) * (MAX_THROTTLE_MS - MIN_THROTTLE_MS) / 200
         else:
@@ -78,7 +89,7 @@ class PWM_control:
         ms = min(MAX_THROTTLE_MS, max(MIN_THROTTLE_MS, ms))
         # TODO: FIND OUT REASON FOR THIS OFFSET LATER
         ms = ms + (1.625 - 1.5)
-        print(ms)
+        #print("Channel ", channel, " is set to ", throttle_percent)
         duty_cyc = int(0xffff * self.pwm_.frequency * ms / 1000)
         # print(duty_cyc)
         self.pwm_.channels[channel].duty_cycle = duty_cyc
@@ -99,7 +110,8 @@ class PWM_control:
         
         if not self.bidirectional and force < 0.0:
             return 0.0
-        
+        if abs(force) <= 0.0001:
+            return 0.0
         # force should be between map[lower] and map[higher] 
         idx1 = 0
         idx2 = 0
@@ -124,13 +136,15 @@ class PWM_control:
                     elif force >= upper:
                         idx1 = i-1
                         idx2 = i
-                        break   
+                        break 
+        #print("idx1 ", idx1, " idx2 ", idx2)
         t1 = self.thrust_map[idx1][0]
         t2 = self.thrust_map[idx2][0]
         f1 = self.thrust_map[idx1][1]
         f2 = self.thrust_map[idx2][1]
         r = (force - f1)/(f2 - f1)
         throttle = t1 + r * (t2 - t1)
+        #print(throttle)
         return throttle
         
     def force_control(self, f_x = 0.0, f_y = 0.0, torque = 0.0):
