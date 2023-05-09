@@ -1,0 +1,9 @@
+Header header
+float32 distance_left
+float32 distance_right
+float32 distance_front
+float32 distance_back
+float32 angle_left
+float32 angle_right
+float32 angle_front
+float32 angle_back

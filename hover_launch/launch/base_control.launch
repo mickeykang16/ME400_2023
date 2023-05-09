@@ -1,0 +1,15 @@
+<!-- Node for merging magnetometer and accelerometer data into a single imu message -->
+<launch>
+  <include file="$(find hover_launch)/launch/imu_filter_madgwick.launch"/>
+
+  <node pkg="driver_mpu9250" type="driver_mpu9250_rpi" name="imu_driver_node" output="screen">
+    
+    <param name="interrupt_gpio_pin" value="14"/>
+    <param name="max_data_rate" value="50"/>
+
+  </node>
+
+  <node pkg="hover_control" type="control_node.py" name="control_node" output="screen"/>
+  
+  <include file="$(find ds4_driver)/launch/ds4_twist.launch"/>
+</launch>

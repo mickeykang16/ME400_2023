@@ -9,11 +9,12 @@ PWM_FREQUENCY = 50
 MAX_THROTTLE_MS = 2.0
 MIN_THROTTLE_MS = 1.0
 GRAVITY=9.81
+THROTTLE_DEADBAND = 20.0
 
 # use SI unit excpet unit is specified
 class PWM_control:
     def __init__(self, bidirectional=False, max = 60.0, radius_cm = 19.0):
-        self.throttle_reverse = [True, False, False, False]
+        self.throttle_reverse = [True, False, True, True]
         rospack = rospkg.RosPack()
         rospack.list()
                 
@@ -27,6 +28,7 @@ class PWM_control:
         self.throttle_ = [0.0, 0.0, 0.0, 0.0]
         self.bidirectional = bidirectional
         self.max_throttle = max
+        self.throttle_deadband = THROTTLE_DEADBAND
         # init throttle thrust mapping
         self.thrust_map = []
         self.zero_throttle_idx = -1
@@ -145,10 +147,22 @@ class PWM_control:
         r = (force - f1)/(f2 - f1)
         throttle = t1 + r * (t2 - t1)
         #print(throttle)
+        
+        if (throttle > 0.0 and throttle < self.throttle_deadband):
+            return 0.0
+        elif (throttle < 0.0 and throttle > -self.throttle_deadband):
+            return 0.0
+        
         return throttle
         
     def force_control(self, f_x = 0.0, f_y = 0.0, torque = 0.0):
         desired_f = np.array([torque, f_x, f_y])
+        #desired_f = np.array([torque, f_y, -f_x])
+        sin = math.sin(-math.pi/2)
+        cos = math.cos(-math.pi/2)
+        r = np.array([[1, 0, 0],[0, cos, -sin],[0, sin, cos]])
+        #print(r.dot(desired_f))
+        desired_f = r.dot(desired_f)
         motor_force = np.linalg.solve(self.control_mat, desired_f)
         self.set_throttle(1, self.force_to_throttle(motor_force[0]))
         self.set_throttle(2, self.force_to_throttle(motor_force[1]))
