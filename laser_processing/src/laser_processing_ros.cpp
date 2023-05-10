@@ -58,11 +58,11 @@ void LaserProcessingROS::loadParameters()
   frame_id_ = frame_id;
   ROS_DEBUG("frame_id: %s", frame_id_.c_str());
 
-  nh_local_.param<float>("ref_angle_front", ref_angle_front, 1.57);
+  nh_local_.param<float>("ref_angle_front", ref_angle_front, 3.14);
   ref_angle_front_ = ref_angle_front;
   ROS_DEBUG("ref_angle_front: %3f", ref_angle_front_);
 
-  nh_local_.param<float>("ref_angle_right", ref_angle_right, 3.14);
+  nh_local_.param<float>("ref_angle_right", ref_angle_right, 1.57);
   ref_angle_right_ = ref_angle_right;
   ROS_DEBUG("ref_angle_right: %3f", ref_angle_right_);
 
@@ -97,24 +97,24 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
   for (int i=0; i<line_msgs->line_segments.size(); ++i){
     float dist = distBetweenPoints(line_msgs->line_segments[i].start[0], line_msgs->line_segments[i].start[1], line_msgs->line_segments[i].end[0], line_msgs->line_segments[i].end[1]);
     int idx = -1;
-    if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.2){
+    if (abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.2){
       if (line_msgs->line_segments[i].start[0] > 0){
-        // right 0, 4
-          idx = 0;
+        // right 0, 4 -> front
+          idx = 2;
         }
         else{
-        // left 1, 5 
-          idx = 1;
+        // left 1, 5 -> back
+          idx = 3;
         }
       }
-    else if (abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.2){
+    else if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.2){
       if (line_msgs->line_segments[i].start[1] > 0){
-        // front 2, 6
-        idx = 2;
+        // front 2, 6 -> left
+        idx = 1;
       }
       else{
-        // back 3, 7
-        idx = 3;
+        // back 3, 7 -> right
+        idx = 0;
       }
     }
 
