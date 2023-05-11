@@ -51,12 +51,20 @@ void LaserProcessingROS::loadParameters()
   // Parameters used by this node
   
   std::string frame_id, scan_topic;
-  float ref_angle_front, ref_angle_right;
+  float ref_angle_front, ref_angle_right, ref_distance_front, ref_distance_right;
   bool pub_markers;
 
   nh_local_.param<std::string>("frame_id", frame_id, "laser");
   frame_id_ = frame_id;
   ROS_DEBUG("frame_id: %s", frame_id_.c_str());
+
+  nh_local_.param<float>("ref_distance_right", ref_distance_right, 0.097);
+  ref_distance_right_ = ref_distance_right;
+  ROS_DEBUG("ref_distance_right: %3f", ref_distance_right_);
+
+  nh_local_.param<float>("ref_distance_front", ref_distance_front, 0.003);
+  ref_distance_front_ = ref_distance_front;
+  ROS_DEBUG("ref_distance_front: %3f", ref_distance_front_);
 
   nh_local_.param<float>("ref_angle_front", ref_angle_front, 3.14);
   ref_angle_front_ = ref_angle_front;
@@ -75,10 +83,10 @@ void LaserProcessingROS::loadParameters()
 void LaserProcessingROS::populateLanesMsg(const std::array<float, 8> &infos,
                                                 laser_processing::Lanes &lanes_msg)
 {
-  lanes_msg.distance_right = infos[0];
-  lanes_msg.distance_left = infos[1];
-  lanes_msg.distance_front = infos[2];
-  lanes_msg.distance_back = infos[3];
+  lanes_msg.distance_right = infos[0] - ref_distance_right_;
+  lanes_msg.distance_left = infos[1] + ref_distance_right_;
+  lanes_msg.distance_front = infos[2] - ref_distance_front_;
+  lanes_msg.distance_back = infos[3] + ref_distance_front_;
   lanes_msg.angle_right = infos[4];
   lanes_msg.angle_left = infos[5];
   lanes_msg.angle_front = infos[6];
@@ -97,7 +105,7 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
   for (int i=0; i<line_msgs->line_segments.size(); ++i){
     float dist = distBetweenPoints(line_msgs->line_segments[i].start[0], line_msgs->line_segments[i].start[1], line_msgs->line_segments[i].end[0], line_msgs->line_segments[i].end[1]);
     int idx = -1;
-    if (abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.2){
+    if (abs(line_msgs->line_segments[i].angle + ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.3){
       if (line_msgs->line_segments[i].start[0] > 0){
         // right 0, 4 -> front
           idx = 2;
@@ -107,7 +115,7 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
           idx = 3;
         }
       }
-    else if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.2 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.2){
+    else if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.3){
       if (line_msgs->line_segments[i].start[1] > 0){
         // front 2, 6 -> left
         idx = 1;

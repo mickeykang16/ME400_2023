@@ -14,7 +14,7 @@ THROTTLE_DEADBAND = 20.0
 # use SI unit excpet unit is specified
 class PWM_control:
     def __init__(self, bidirectional=False, max = 60.0, radius_cm = 19.0):
-        self.throttle_reverse = [True, False, True, True]
+        self.throttle_reverse = [True, True, False, True]
         rospack = rospkg.RosPack()
         rospack.list()
                 

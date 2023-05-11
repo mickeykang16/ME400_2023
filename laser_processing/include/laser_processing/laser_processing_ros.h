@@ -34,6 +34,8 @@ private:
   std::string frame_id_;
   float ref_angle_front_;
   float ref_angle_right_;
+  float ref_distance_front_;
+  float ref_distance_right_;
   
   // Members
   void loadParameters();
