@@ -101,10 +101,15 @@ void LaserProcessingROS::populateLanesMsg(const std::array<float, 8> &infos,
 ///////////////////////////////////////////////////////////////////////////////
 void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegmentList::ConstPtr &line_msgs)
 {
+  for (int i=0; i < 4; i++){
+    infos_[i] = 0;
+    infos_[i+4] = 0;
+  }
   std::array<float, 4> max_length = {0.0, 0.0, 0.0, 0.0};
   for (int i=0; i<line_msgs->line_segments.size(); ++i){
     float dist = distBetweenPoints(line_msgs->line_segments[i].start[0], line_msgs->line_segments[i].start[1], line_msgs->line_segments[i].end[0], line_msgs->line_segments[i].end[1]);
     int idx = -1;
+    bool change_sign = false;
     if (abs(line_msgs->line_segments[i].angle + ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.3){
       if (line_msgs->line_segments[i].start[0] > 0){
         // right 0, 4 -> front
@@ -113,6 +118,9 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
         else{
         // left 1, 5 -> back
           idx = 3;
+        }
+        if ((line_msgs->line_segments.start[1] * line_msgs->line_segments.end[1]) < 0){
+          change_sign = true;
         }
       }
     else if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.3){
@@ -124,9 +132,16 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
         // back 3, 7 -> right
         idx = 0;
       }
+      if ((line_msgs->line_segments.start[0] * line_msgs->line_segments.end[0]) < 0){
+        change_sign = true;
+      }
     }
-
-    if ((idx >= 0) & (dist > max_length[idx])){
+    if ((idx >= 0) & change_sign){
+      max_length[idx] = 100;
+      infos_[idx] = line_msgs->line_segments[i].radius;
+      infos_[idx+4] = line_msgs->line_segments[i].angle;
+    }
+    else if ((idx >= 0) & (dist > max_length[idx])){
       max_length[idx] = dist;
       infos_[idx] = line_msgs->line_segments[i].radius;
       infos_[idx+4] = line_msgs->line_segments[i].angle;
