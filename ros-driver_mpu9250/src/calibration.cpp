@@ -20,6 +20,7 @@ void calibration::load(ros::NodeHandle& node_handle, std::string param_name)
     if(!node_handle.getParam(param_name, components))
     {
         // Param not found, quit.
+        ROS_INFO_STREAM("Cannot get calibration");
         return;
     }
 

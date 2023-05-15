@@ -1,0 +1,6 @@
+<launch>
+    <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
+    <include file="$(find laser_line_extraction)/launch/example.launch"/>
+    <node pkg="laser_processing" type="laser_processing_node" name="laser_processing_node">
+    </node>
+</launch>

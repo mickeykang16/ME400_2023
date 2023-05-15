@@ -6,6 +6,6 @@
     
     <param name="interrupt_gpio_pin" value="14"/>
     <param name="max_data_rate" value="50"/>
-
+    <rosparam param="calibration/accelerometer">[0.998737, 0.000000, 0.000000, -0.010058, 0.000000, 0.999276, 0.000000, -0.011044, 0.000000, 0.000000, 1.000594, 0.013281, 0.000000, 0.000000, 0.000000, 1.000000]</rosparam>
   </node>
 </launch>
