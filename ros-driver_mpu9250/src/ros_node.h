@@ -57,7 +57,7 @@ private:
     // PUBLISHERS - DATA
     /// \brief Publisher for accelerometer data.
     ros::Publisher m_publisher_imu;
-    // ros::Publisher m_publisher_accelerometer;
+    ros::Publisher m_publisher_accelerometer;
     /// \brief Publisher for gyroscope data.
     // ros::Publisher m_publisher_gyroscope;
     /// \brief Publisher for magnetometer data.
