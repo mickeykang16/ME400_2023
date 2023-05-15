@@ -1,6 +1,7 @@
 #include "ros_node.h"
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs_ext/accelerometer.h>
 
 #include <cmath>
 
@@ -37,7 +38,7 @@ ros_node::ros_node(std::shared_ptr<driver> driver, int argc, char **argv)
     // Set up data publishers.
     ros_node::m_publisher_imu = ros_node::m_node->advertise<sensor_msgs::Imu>("imu9250", 1);
 
-    // ros_node::m_publisher_accelerometer = ros_node::m_node->advertise<sensor_msgs_ext::accelerometer>("imu/accelerometer", 1);
+    ros_node::m_publisher_accelerometer = ros_node::m_node->advertise<sensor_msgs_ext::accelerometer>("imu/accelerometer", 1);
     // ros_node::m_publisher_gyroscope = ros_node::m_node->advertise<sensor_msgs_ext::gyroscope>("imu/gyroscope", 1);
     // ros_node::m_publisher_magnetometer = ros_node::m_node->advertise<sensor_msgs_ext::magnetometer>("imu/magnetometer", 1);
     // ros_node::m_publisher_temperature = ros_node::m_node->advertise<sensor_msgs_ext::temperature>("imu/temperature", 1);
@@ -177,7 +178,7 @@ void ros_node::data_callback(driver::data data)
     msg.angular_velocity_covariance[4] = 0.02;
     msg.angular_velocity_covariance[8] = 0.02;
     // Create accelerometer message.
-    // sensor_msgs_ext::accelerometer message_accel;
+    sensor_msgs_ext::accelerometer message_accel;
     // Set accelerations (convert from g's to m/s^2)
     // message_accel.x = static_cast<double>(data.accel_x) * 9.80665;
     // message_accel.y = static_cast<double>(data.accel_y) * 9.80665;
@@ -185,8 +186,11 @@ void ros_node::data_callback(driver::data data)
     // Apply calibration.
     // ros_node::m_calibration_accelerometer.calibrate(message_accel.x, message_accel.y, message_accel.z);
     ros_node::m_calibration_accelerometer.calibrate(msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z);
+    message_accel.x = msg.linear_acceleration.x;
+    message_accel.y = msg.linear_acceleration.y;
+    message_accel.z = msg.linear_acceleration.z;
     // Publish message.
-    // ros_node::m_publisher_accelerometer.publish(message_accel);
+    ros_node::m_publisher_accelerometer.publish(message_accel);
 
     msg.angular_velocity.x = static_cast<double>(data.gyro_x) * M_PI / 180.0;
     msg.angular_velocity.y = static_cast<double>(data.gyro_y) * M_PI / 180.0;

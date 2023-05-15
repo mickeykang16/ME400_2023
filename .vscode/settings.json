@@ -1,0 +1,20 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/mickeykang/catkin_ws2/devel/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/rrt_exploration/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/hector_uav_msgs/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/hector_gazebo_plugins/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/cartographer_ros_msgs/lib/python2.7/dist-packages",
+        "/home/mickeykang/cart_ws/install_isolated/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/mickeykang/catkin_ws2/devel/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/rrt_exploration/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/hector_uav_msgs/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/hector_gazebo_plugins/lib/python2.7/dist-packages",
+        "/home/mickeykang/catkin_ws/devel_isolated/cartographer_ros_msgs/lib/python2.7/dist-packages",
+        "/home/mickeykang/cart_ws/install_isolated/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
+}
