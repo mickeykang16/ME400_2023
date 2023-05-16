@@ -8,6 +8,7 @@ from PWM_control import PWM_control
 import rospkg
 import os
 import sys
+from hover_control.msg import control_debug
 
 HOVERING_POWER = 60.0
 # from tf.transformations import euler_from_quaternion
@@ -40,6 +41,7 @@ class HovercraftController:
         self.cmd_vel_subscriber = rospy.Subscriber("cmd_vel", Twist, self.twist_callback)
         self.timer = rospy.Timer(rospy.Duration(0.02), self.timer_callback)
         self.debug_timer = rospy.Timer(rospy.Duration(0.5), self.debug_timer_callback)
+        self.debug_publisher = rospy.Publisher("control/debug", control_debug)
         self.is_first_imu = False
         self.is_first_twist = False
         self.last_twist_time = rospy.Time.now() - rospy.Duration(1)
@@ -50,6 +52,9 @@ class HovercraftController:
         
         
     def timer_callback(self, event):
+        debug_msg = control_debug()
+        debug_msg.header.stamp = rospy.Time.now()
+        
         twist_time_out = (rospy.Time.now() - self.last_twist_time) > rospy.Duration(0.5)
         if (self.is_first_imu and self.is_first_twist and not twist_time_out and self.twist_msg.linear.z > 0.9):
             if self.controller.get_throttle(0) == 0.0:
@@ -65,11 +70,23 @@ class HovercraftController:
             self.controller.force_control(self.twist_msg.linear.x, \
                 self.twist_msg.linear.y, 
                 -P * yaw_error_deg - D * yaw_velocity_deg)
+
+            debug_msg.torque = -P * yaw_error_deg - D * yaw_velocity_deg
+            debug_msg.f_x = self.twist_msg.linear.x
+            debug_msg.f_y = self.twist_msg.linear.y
             # self.controller.force_control(0, \
             #     0, 
             #     -P * yaw_error_deg - D * yaw_velocity_deg)
         else:
             self.controller.stop_all()
+
+        debug_msg.motor_0_thrust = self.controller.get_throttle(0)
+        debug_msg.motor_1_thrust = self.controller.get_throttle(1)
+        debug_msg.motor_2_thrust = self.controller.get_throttle(2)
+        debug_msg.motor_3_thrust = self.controller.get_throttle(3)
+        debug_msg.yaw_rad = self.yaw
+        debug_msg.initial_yaw_rad = self.initial_yaw
+        self.debug_publisher.publish(debug_msg)
             
     def debug_timer_callback(self, event):
         print("Hovering motor:", self.controller.get_throttle(0), "%")
@@ -90,9 +107,7 @@ class HovercraftController:
             self.is_first_imu = True
         self.yaw = yaw
         self.yaw_velocity = msg.angular_velocity.z
-        
-        #print("Initial yaw:",self.initial_yaw, "\nCurrent yaw:", self.yaw)
-    
+            
     def twist_callback(self, msg):
         self.last_twist_time = rospy.Time.now()
         if (not self.is_first_twist):
