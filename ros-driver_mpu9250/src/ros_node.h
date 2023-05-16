@@ -82,6 +82,7 @@ private:
     /// \brief data_callback The callback function for when new data is available.
     /// \param data The latest data read from the MPU9250/AK8963.
     void data_callback(driver::data data);
+    Eigen::Matrix3f Rot_;
 };
 
 #endif // ROS_NODE_H

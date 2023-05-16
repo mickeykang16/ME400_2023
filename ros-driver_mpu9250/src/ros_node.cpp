@@ -56,6 +56,10 @@ ros_node::ros_node(std::shared_ptr<driver> driver, int argc, char **argv)
 
         ROS_INFO_STREAM("mpu9250 driver successfully initialized on i2c bus " << param_i2c_bus << " at address 0x" << std::hex << param_i2c_address);
         ROS_INFO_STREAM("sensor data rate is " << data_rate << " hz");
+        
+        ros_node::Rot_  << 0.9756f, -0.1490f, 0.1614f,
+            0.1495f, 0.9887f, 0.0091f,
+            0.1609f,-0.0153f, -0.9868f;
     }
     catch (std::exception& e)
     {
@@ -161,15 +165,23 @@ void ros_node::data_callback(driver::data data)
     sensor_msgs::Imu msg;
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = "imu";
-    msg.linear_acceleration.x = static_cast<double>(data.accel_x) * 9.80665;
-    msg.linear_acceleration.y = static_cast<double>(data.accel_y) * 9.80665;
-    msg.linear_acceleration.z = static_cast<double>(data.accel_z) * 9.80665;
+    Eigen::Vector3f tmp_accel;
+    tmp_accel(0) = static_cast<double>(data.accel_x); 
+    tmp_accel(1) = static_cast<double>(data.accel_y); 
+    tmp_accel(2) = static_cast<double>(data.accel_z);
+
+    // Eigen::Vector3f ret_accel;
+    // ret_accel = ros_node::Rot_ * tmp_accel;
+
+    msg.linear_acceleration.x = tmp_accel(0) * 9.80665;
+    msg.linear_acceleration.y = tmp_accel(1) * 9.80665;
+    msg.linear_acceleration.z = tmp_accel(2) * 9.80665;
     
     for(int i=0;i<9;i++){
         msg.linear_acceleration_covariance[i] = 0;
         msg.angular_velocity_covariance[i] = 0;
     }
-    msg.linear_acceleration_covariance[2] = 0.04;
+    msg.linear_acceleration_covariance[0] = 0.04;
     msg.linear_acceleration_covariance[4] = 0.04;
     msg.linear_acceleration_covariance[8] = 0.04;
 
@@ -188,9 +200,17 @@ void ros_node::data_callback(driver::data data)
     // Publish message.
     // ros_node::m_publisher_accelerometer.publish(message_accel);
 
-    msg.angular_velocity.x = static_cast<double>(data.gyro_x) * M_PI / 180.0;
-    msg.angular_velocity.y = static_cast<double>(data.gyro_y) * M_PI / 180.0;
-    msg.angular_velocity.z = static_cast<double>(data.gyro_z) * M_PI / 180.0;
+    
+    Eigen::Vector3f tmp_angular;
+    tmp_angular(0) = static_cast<double>(data.gyro_x); 
+    tmp_angular(1) = static_cast<double>(data.gyro_y); 
+    tmp_angular(2) = static_cast<double>(data.gyro_z);
+
+    // Eigen::Vector3f ret_angular;
+    // ret_angular = ros_node::Rot_ * tmp_angular;
+    msg.angular_velocity.x = tmp_angular(0) * M_PI / 180.0;
+    msg.angular_velocity.y = tmp_angular(1) * M_PI / 180.0;
+    msg.angular_velocity.z = tmp_angular(2) * M_PI / 180.0;
 
      // If gyroscope calibration is running, add uncalibrate data to window.
     if(ros_node::f_gyroscope_calibrating)
