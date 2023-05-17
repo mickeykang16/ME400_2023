@@ -265,7 +265,7 @@ void LineExtraction::mergeLines()
            lines_[i].getCovariance()[2], lines_[i].getCovariance()[3];
 
     // Merge lines if chi-squared distance is less than 3
-    if (chiSquared(L_1 - L_2, P_1, P_2) < 100)
+    if (chiSquared(L_1 - L_2, P_1, P_2) < 1000)
     {
       // Get merged angle, radius, and covariance
       Eigen::Matrix2d P_m = (P_1.inverse() + P_2.inverse()).inverse();

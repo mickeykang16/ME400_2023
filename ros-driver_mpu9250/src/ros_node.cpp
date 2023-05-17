@@ -170,12 +170,12 @@ void ros_node::data_callback(driver::data data)
     tmp_accel(1) = static_cast<double>(data.accel_y); 
     tmp_accel(2) = static_cast<double>(data.accel_z);
 
-    // Eigen::Vector3f ret_accel;
-    // ret_accel = ros_node::Rot_ * tmp_accel;
+    Eigen::Vector3f ret_accel;
+    ret_accel = ros_node::Rot_ * tmp_accel;
 
-    msg.linear_acceleration.x = tmp_accel(0) * 9.80665;
-    msg.linear_acceleration.y = tmp_accel(1) * 9.80665;
-    msg.linear_acceleration.z = tmp_accel(2) * 9.80665;
+    msg.linear_acceleration.x = ret_accel(0) * 9.80665;
+    msg.linear_acceleration.y = ret_accel(1) * 9.80665;
+    msg.linear_acceleration.z = ret_accel(2) * 9.80665;
     
     for(int i=0;i<9;i++){
         msg.linear_acceleration_covariance[i] = 0;
@@ -206,11 +206,11 @@ void ros_node::data_callback(driver::data data)
     tmp_angular(1) = static_cast<double>(data.gyro_y); 
     tmp_angular(2) = static_cast<double>(data.gyro_z);
 
-    // Eigen::Vector3f ret_angular;
-    // ret_angular = ros_node::Rot_ * tmp_angular;
-    msg.angular_velocity.x = tmp_angular(0) * M_PI / 180.0;
-    msg.angular_velocity.y = tmp_angular(1) * M_PI / 180.0;
-    msg.angular_velocity.z = tmp_angular(2) * M_PI / 180.0;
+    Eigen::Vector3f ret_angular;
+    ret_angular = ros_node::Rot_ * tmp_angular;
+    msg.angular_velocity.x = -ret_angular(0) * M_PI / 180.0;
+    msg.angular_velocity.y = -ret_angular(1) * M_PI / 180.0;
+    msg.angular_velocity.z = -ret_angular(2) * M_PI / 180.0;
 
      // If gyroscope calibration is running, add uncalibrate data to window.
     if(ros_node::f_gyroscope_calibrating)

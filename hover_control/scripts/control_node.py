@@ -8,7 +8,9 @@ from PWM_control import PWM_control
 import rospkg
 import os
 import sys
-from hover_control.msg import control_debug
+# sys.path.remove(os.path.dirname(__file__))
+from std_msgs.msg import Float32
+from laser_processing.msg import ControlDebug
 
 HOVERING_POWER = 60.0
 # from tf.transformations import euler_from_quaternion
@@ -36,12 +38,6 @@ def euler_from_quaternion(x, y, z, w):
     
 class HovercraftController:
     def __init__(self):
-        self.controller = PWM_control(bidirectional=True, max = 60.0)
-        self.imu_subscriber = rospy.Subscriber("imu/data", Imu, self.imu_callback)
-        self.cmd_vel_subscriber = rospy.Subscriber("cmd_vel", Twist, self.twist_callback)
-        self.timer = rospy.Timer(rospy.Duration(0.02), self.timer_callback)
-        self.debug_timer = rospy.Timer(rospy.Duration(0.5), self.debug_timer_callback)
-        self.debug_publisher = rospy.Publisher("control/debug", control_debug)
         self.is_first_imu = False
         self.is_first_twist = False
         self.last_twist_time = rospy.Time.now() - rospy.Duration(1)
@@ -49,10 +45,16 @@ class HovercraftController:
         self.yaw = 0.0
         self.yaw_velocity = 0.0
         self.twist_msg = Twist()
+        self.controller = PWM_control(bidirectional=True, max = 60.0)
+        self.imu_subscriber = rospy.Subscriber("imu/data", Imu, self.imu_callback)
+        self.cmd_vel_subscriber = rospy.Subscriber("cmd_vel", Twist, self.twist_callback)
+        self.debug_timer = rospy.Timer(rospy.Duration(0.5), self.debug_timer_callback)
+        self.debug_publisher = rospy.Publisher("control/debug", ControlDebug, queue_size=5)
+        self.timer = rospy.Timer(rospy.Duration(0.02), self.timer_callback)
         
         
     def timer_callback(self, event):
-        debug_msg = control_debug()
+        debug_msg = ControlDebug()
         debug_msg.header.stamp = rospy.Time.now()
         
         twist_time_out = (rospy.Time.now() - self.last_twist_time) > rospy.Duration(0.5)
@@ -60,13 +62,16 @@ class HovercraftController:
             if self.controller.get_throttle(0) == 0.0:
                 self.controller.set_throttle(0, HOVERING_POWER)
             P = 0.05
-            D = 0.01
+            # D = 0.001
+            D = 0.005
             yaw_error_deg = (self.yaw - self.initial_yaw) * 180 / math.pi
             yaw_velocity_deg = self.yaw_velocity * 180/ math.pi
             if (yaw_error_deg > 180.0):
                 yaw_error_deg -= 360.0
             elif (yaw_error_deg < -180.0):
                 yaw_error_deg += 360.0
+                
+            # print(yaw_velocity_deg)
             self.controller.force_control(self.twist_msg.linear.x, \
                 self.twist_msg.linear.y, 
                 -P * yaw_error_deg - D * yaw_velocity_deg)

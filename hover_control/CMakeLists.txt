@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,10 +51,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  control_debug.msg
-)
+# add_message_files(
+#   FILES
+#   ControlDebug.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -107,7 +108,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES hover_control
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs
+ CATKIN_DEPENDS message_generation geometry_msgs roscpp rospy sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
