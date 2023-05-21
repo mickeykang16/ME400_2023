@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import os
 
 if __name__ == '__main__':
     # current resolution 5cm per pixel
@@ -21,5 +22,7 @@ if __name__ == '__main__':
     cv2.imshow('tmp', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    cv2.imwrite('../data/map.png', img)
+    dir_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(dir_path, "data/map.png")
+    cv2.imwrite(file_path, img)
     

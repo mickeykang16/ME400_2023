@@ -25,6 +25,8 @@ class robotTF():
         self.target_odom_publisher = rospy.Publisher('/target_odom', nav_msgs.msg.Odometry, queue_size=10)
         # rospy.Subscriber('/imu/data', sensor_msgs.msg.Imu, self.update_with_imu) # only yaw? use it latter
         self.map = np.zeros(map_size)
+        self.prev_x = 0
+        self.prev_y = 0
         self.x = 0
         self.y = 0
         self.yaw = -np.pi/2
@@ -38,6 +40,7 @@ class robotTF():
         self.waypoint_index = 0
         self.threshold = 0.2
         self.waypoints = self.generate_waypoints(file_path)
+        self.prev_time = 0
 
     def generate_waypoints(self, file_path):
         path = os.path.join(file_path, "data/waypoints.json")
@@ -67,7 +70,8 @@ class robotTF():
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "map"
         t.child_frame_id = "laser"
-        
+        self.prev_x = self.x
+        self.prev_y = self.y
         self.yaw = np.pi/2-msg.angle_left # np.pi-msg.angle_left
 
         # print(abs(msg.distance_back + msg.distance_front - 10), self.use_back)
@@ -146,8 +150,15 @@ class robotTF():
         robot_msg.pose.pose.orientation.y = quat[1]
         robot_msg.pose.pose.orientation.z = quat[2]
         robot_msg.pose.pose.orientation.w = quat[3]
+        if self.prev_time != 0:
+            dt = (curr_time - self.prev_time).to_sec()
+            if dt != 0:
+                robot_msg.twist.twist.linear.x = (self.x - self.prev_x) / dt
+                robot_msg.twist.twist.linear.y = (self.y - self.prev_y) / dt
+                robot_msg.twist.twist.linear.z = 0
         # maybe twist, too?
         self.robot_odom_publisher.publish(robot_msg)
+        self.prev_time = curr_time
 
         # then implement pose checker
         # in the case of type 1, if the difference becomes smaller than threshold, load the next values
@@ -159,7 +170,7 @@ class robotTF():
             # need to stop
             self.waypoint_index += 1
         if self.waypoint_index >= len(self.waypoints):
-            self.waypoint_index == len(self.waypoints) - 1
+            self.waypoint_index = len(self.waypoints) - 1
         
         ret_waypoint = self.waypoints[self.waypoint_index]
         if waypoint.type == 0 and ret_waypoint.type == 1:
