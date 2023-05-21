@@ -5,12 +5,12 @@ Example launch file: launches the scan matcher with pre-recorded data
 
 <launch>
   <arg name="IS_TWISTSTAMPED" default="true" />
-  <arg name="use_rviz" default="false" />
+  <arg name="use_rviz" default="true" />
   <arg name="publish_covariance" default="true"/>
   #### set up data playback from bag #############################
-  <remap from="imu/data" to="imu"/>
+  <!--remap from="imu/data" to="imu"/-->
 
-  <param name="/use_sim_time" value="false"/>
+  <param name="/use_sim_time" value="true"/>
   <param name="/stamped_vel" value="$(arg IS_TWISTSTAMPED)"/>
 
   <group if="$(arg use_rviz)">
@@ -18,11 +18,9 @@ Example launch file: launches the scan matcher with pre-recorded data
           args="-d $(find laser_scan_matcher)/demo/demo.rviz"/>
   </group>
 
-  #### publish an example base_link -> laser transform ###########
   <node pkg="tf" type="static_transform_publisher" name="base_to_scan" args="0 0 0 0 0 0 /base_footprint /laser 100"/>
   <!-- <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser"
     args="0.0 0.0 0.0 0.0 0.0 0.0 /base_scan /base_footprint 40" /> -->
-  #### start the laser scan_matcher ##############################
 
   <group if="$(arg publish_covariance)">
     <param name="laser_scan_matcher_node/do_compute_covariance" value="1"/>
