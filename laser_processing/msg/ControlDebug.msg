@@ -8,3 +8,10 @@ float32 initial_yaw_rad
 float32 torque
 float32 f_x
 float32 f_y
+bool is_auto
+float32 yaw_error_deg
+float32 vel_yaw_error_deg
+float32 pose_x_error
+float32 pose_y_error
+float32 vel_x_error
+float32 vel_y_error
