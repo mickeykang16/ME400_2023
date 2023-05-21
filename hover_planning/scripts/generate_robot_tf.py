@@ -19,10 +19,6 @@ class robotTF():
     def __init__(self, map_size=(202, 92), resolution=0.05):
         self.init_yaw = 0
         # publish nav_msgs/Odometry.msg
-        rospy.Subscriber('/map', nav_msgs.msg.OccupancyGrid, self.get_map)
-        rospy.Subscriber('/lanes', laser_processing.msg.Lanes, self.generate_robot_pose)
-        self.robot_odom_publisher = rospy.Publisher('/robot_odom', nav_msgs.msg.Odometry, queue_size=10)
-        self.target_odom_publisher = rospy.Publisher('/target_odom', nav_msgs.msg.Odometry, queue_size=10)
         # rospy.Subscriber('/imu/data', sensor_msgs.msg.Imu, self.update_with_imu) # only yaw? use it latter
         self.map = np.zeros(map_size)
         self.prev_x = 0
@@ -41,6 +37,11 @@ class robotTF():
         self.threshold = 0.2
         self.waypoints = self.generate_waypoints(file_path)
         self.prev_time = 0
+        rospy.Subscriber('/map', nav_msgs.msg.OccupancyGrid, self.get_map)
+        rospy.Subscriber('/lanes', laser_processing.msg.Lanes, self.generate_robot_pose)
+        self.robot_odom_publisher = rospy.Publisher('/robot_odom', nav_msgs.msg.Odometry, queue_size=10)
+        self.target_odom_publisher = rospy.Publisher('/target_odom', nav_msgs.msg.Odometry, queue_size=10)
+
 
     def generate_waypoints(self, file_path):
         path = os.path.join(file_path, "data/waypoints.json")

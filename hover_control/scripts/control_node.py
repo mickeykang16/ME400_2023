@@ -62,8 +62,8 @@ class HovercraftController:
         self.target_msg = Odometry()
         self.debug_str = ""
         self.controller = PWM_control(bidirectional=True, max = 60.0)
-        self.odom_subscriber = rospy.Subscriber("odom", Odometry, self.odom_callback)
-        self.target_subscriber = rospy.Subscriber("target", Odometry, self.target_callback)
+        self.odom_subscriber = rospy.Subscriber("robot_odom", Odometry, self.odom_callback)
+        self.target_subscriber = rospy.Subscriber("target_odom", Odometry, self.target_callback)
         self.imu_subscriber = rospy.Subscriber("imu/data", Imu, self.imu_callback)
         self.cmd_vel_subscriber = rospy.Subscriber("cmd_vel", Twist, self.twist_callback)
         self.joy_subscriber = rospy.Subscriber("status", Status, self.joy_callback)
