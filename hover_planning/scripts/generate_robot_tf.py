@@ -1,13 +1,10 @@
 #!/usr/bin/env python
-import rospy
-import tf_conversions
-import tf, tf2_ros
+import rospy, rospkg
+import tf_conversions, tf2_ros
 import laser_processing.msg
 import geometry_msgs.msg
 import nav_msgs.msg
-import sensor_msgs.msg
 import numpy as np
-import rospkg
 import os, json
 from math import sqrt
 

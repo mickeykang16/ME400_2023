@@ -6,16 +6,19 @@
 # can use rosbag --pause -> subscribe and store at the time???????
 # just estimate the stopping point, subscribe the odometry point
 
-import rospy
+import rospy, rospkg
 import nav_msgs.msg
 import tf
-import json
+import json, os
 from math import sqrt
 import numpy as np
 save_points = []
 
 def save_json():
     # save it into the json, need to modify them little bit
+    rospack = rospkg.RosPack()
+    file_path = rospack.get_path('hover_planning')
+    path = os.path.join(file_path, "data/waypoints.json")
     return_list = []
     # get the start point, removing the first before starting part
     start_time = 0
@@ -50,7 +53,7 @@ def save_json():
             prev_save_time = index
         index += 1
 
-    with open("/home/namu/catkin_ws/src/hover_planning/data/waypoints.json", "w") as f:
+    with open(path, "w") as f:
         json.dump(return_list, f)
 
 def filter_odom(msg):
