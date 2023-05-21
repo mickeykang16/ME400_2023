@@ -265,7 +265,7 @@ void LineExtraction::mergeLines()
            lines_[i].getCovariance()[2], lines_[i].getCovariance()[3];
 
     // Merge lines if chi-squared distance is less than 3
-    if (chiSquared(L_1 - L_2, P_1, P_2) < 1000)
+    if (chiSquared(L_1 - L_2, P_1, P_2) < 5000)
     {
       // Get merged angle, radius, and covariance
       Eigen::Matrix2d P_m = (P_1.inverse() + P_2.inverse()).inverse();
@@ -315,7 +315,7 @@ void LineExtraction::mergeLines()
       // ROS_DEBUG("L1 rad %0.3f L2 rad %0.3f", L_1[0], L_2[0]);
       // ROS_DEBUG("L1 - L2 %0.3f, %0.3f", diff[0], diff[1]);
       // ROS_DEBUG("chiSquared %0.3f", chiSquared(L_1-L_2, P_1, P_2));
-      if (chiSquared(L_1-L_2, P_1, P_2) < 1000)
+      if (chiSquared(L_1-L_2, P_1, P_2) < 10000)
       {
         // Get merged angle, radius, and covariance
         Eigen::Matrix2d P_m = (P_1.inverse() + P_2.inverse()).inverse();
@@ -334,8 +334,8 @@ void LineExtraction::mergeLines()
         indices.insert(indices.end(), ind_1.begin(), ind_1.end());
         Line merged_line(L_m[1], L_m[0], cov, lines_[i].getStart(), lines_[zeroth_merge].getEnd(), indices);
         // Project the new endpoints
-        ROS_DEBUG("%d %d", ind_1.size(), ind_2.size());
-        ROS_DEBUG("%0.2f %d", merged_line.length(), merged_line.numPoints());
+        // ROS_DEBUG("%d %d", ind_1.size(), ind_2.size());
+        // ROS_DEBUG("%0.2f %d", merged_line.length(), merged_line.numPoints());
         merged_line.projectEndpoints();
         lines_[i] = merged_line;
       }
