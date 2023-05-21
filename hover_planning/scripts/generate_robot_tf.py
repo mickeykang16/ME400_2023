@@ -9,10 +9,12 @@ import os, json
 from math import sqrt
 
 class Waypoints():
-    def __init__(self, pt_type=0, x=0, y=0, yaw=0):
+    def __init__(self, pt_type=0, x=0, y=0, vx=0, vy=0, yaw=0):
         self.type = pt_type
         self.x = x
         self.y = y
+        self.vx = vx
+        self.vy = vy
         self.quat = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw)
 
 class robotTF():
@@ -33,8 +35,9 @@ class robotTF():
         rospack = rospkg.RosPack()
         file_path = rospack.get_path('hover_planning')
         self.stop_start = 0
+        self.arrive = False
         self.waypoint_index = 0
-        self.threshold = 0.2
+        self.threshold = 0.3
         self.waypoints = self.generate_waypoints(file_path)
         self.prev_time = 0
         rospy.Subscriber('/map', nav_msgs.msg.OccupancyGrid, self.get_map)
@@ -50,7 +53,7 @@ class robotTF():
         with open(path, "r") as f:
             infos = json.load(f)
             for info in infos:
-                return_list.append(Waypoints(info["type"], info["x"], info["y"], info["yaw"]))
+                return_list.append(Waypoints(info["type"], info["x"], info["y"], info["vx"], info["vy"], info["yaw"]))
         return return_list
     
     def get_map(self, msg):
@@ -84,7 +87,7 @@ class robotTF():
                 self.use_back = False
         elif abs(msg.distance_back + msg.distance_front - 10) < 0.2:
             # Maybe at the stopping point?
-            if msg.distance_front < 3.5:
+            if msg.distance_front < 3.0:
                 self.use_back = False
         elif msg.distance_front > 5 and msg.distance_back < 3.5:
             self.use_back = True
@@ -112,7 +115,7 @@ class robotTF():
         y_dist = -msg.distance_left
         if self.init_origin and abs(self.y - y_dist) > 0.5:
             # transform right distance to relative left
-            if self.x < 2:
+            if self.x > 7:
                 self.y = -4.5 + msg.distance_right
             else:
                 self.y = -2.5 + msg.distance_right
@@ -167,15 +170,20 @@ class robotTF():
         dist = sqrt((self.x - waypoint.x)**2+(self.y-waypoint.y)**2)
         if dist < self.threshold and waypoint.type == 0:
             self.waypoint_index += 1
-        elif dist < 0.05 and waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 1.5:
-            # need to stop
-            self.waypoint_index += 1
+        elif dist < 0.15 and waypoint.type == 1:
+            if self.arrive == False:
+                self.arrive = True
+                self.stop_start = curr_time
+            elif (curr_time - self.stop_start).to_sec() > 5:
+                # need to stop
+                self.waypoint_index += 1
+                self.arrive = False
         if self.waypoint_index >= len(self.waypoints):
             self.waypoint_index = len(self.waypoints) - 1
         
         ret_waypoint = self.waypoints[self.waypoint_index]
-        if waypoint.type == 0 and ret_waypoint.type == 1:
-            self.stop_start = curr_time
+        # if waypoint.type == 0 and ret_waypoint.type == 1:
+        #     self.stop_start = curr_time
 
         way_msg = nav_msgs.msg.Odometry()
         way_msg.header.stamp = curr_time
@@ -189,6 +197,9 @@ class robotTF():
         way_msg.pose.pose.orientation.y = quat[1]
         way_msg.pose.pose.orientation.z = quat[2]
         way_msg.pose.pose.orientation.w = quat[3]
+        way_msg.twist.twist.linear.x = ret_waypoint.vx
+        way_msg.twist.twist.linear.y = ret_waypoint.vy
+        way_msg.twist.twist.linear.z = 0
         # maybe twist, too?
         self.target_odom_publisher.publish(way_msg)
         

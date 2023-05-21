@@ -14,7 +14,7 @@ from laser_processing.msg import ControlDebug
 from ds4_driver.msg import Status
 from nav_msgs.msg import Odometry
 
-HOVERING_POWER = 55.0
+HOVERING_POWER = 57.0
 
 def euler_from_quaternion(x, y, z, w):
         """
@@ -83,7 +83,7 @@ class HovercraftController:
         return twist_time_out or imu_time_out
     
     def is_auto_timeout(self):
-        odom_time_out = (rospy.Time.now() - self.last_odom_time) > rospy.Duration(0.2)
+        odom_time_out = (rospy.Time.now() - self.last_odom_time) > rospy.Duration(0.4)
         target_time_out = (rospy.Time.now() - self.last_target_time) > rospy.Duration(1.0)
         
         if odom_time_out:
@@ -103,11 +103,24 @@ class HovercraftController:
         # 3. No timeout msgs
         can_operate = self.is_first_imu and self.is_first_twist and (not self.is_manual_timeout())
         
+        auto_timeout = self.is_auto_timeout()
+        if (not auto_timeout):
+            pose_error_x = self.target_msg.pose.pose.position.x - self.odom_msg.pose.pose.position.x
+            pose_error_y = self.target_msg.pose.pose.position.y - self.odom_msg.pose.pose.position.y
+            vel_error_x = self.target_msg.twist.twist.linear.x - self.odom_msg.twist.twist.linear.x
+            vel_error_y = self.target_msg.twist.twist.linear.y - self.odom_msg.twist.twist.linear.y
+        else:
+            pose_error_x = 0
+            pose_error_y = 0
+            vel_error_x = 0
+            vel_error_y = 0
+            
         yaw_P = 0.05
         yaw_D = 0.008
         
-        pose_P = 0.1
-        pose_D = 0.00
+        pose_P_x = 1.0
+        pose_P_y = 1.1
+        pose_D = 0.8
         # Manual operation case
         if (can_operate and (not self.is_autonomous) and self.twist_msg.linear.z > 0.9):
             if self.controller.get_throttle(0) == 0.0:
@@ -124,7 +137,7 @@ class HovercraftController:
                 self.twist_msg.linear.y, 
                 yaw_P * yaw_error_deg + yaw_D * yaw_velocity_deg)
         # Autonomous
-        elif (can_operate and self.is_autonomous and (not self.is_auto_timeout())):
+        elif (can_operate and self.is_autonomous and (not auto_timeout)):
             # Activate main hovering motor
             if self.controller.get_throttle(0) == 0.0:
                 self.controller.set_throttle(0, HOVERING_POWER)
@@ -137,15 +150,12 @@ class HovercraftController:
                 yaw_error_deg -= 360.0
             elif (yaw_error_deg < -180.0):
                 yaw_error_deg += 360.0
-                
-            pose_error_x = self.target_msg.pose.pose.position.x - self.odom_msg.pose.pose.position.x
-            pose_error_y = self.target_msg.pose.pose.position.y - self.odom_msg.pose.pose.position.y
-            vel_error_x = self.target_msg.twist.twist.linear.x - self.odom_msg.twist.twist.linear.x
-            vel_error_y = self.target_msg.twist.twist.linear.y - self.odom_msg.twist.twist.linear.y
-            
-            
-            self.controller.force_control(pose_P * pose_error_x + pose_D * vel_error_x,
-                                          pose_P * pose_error_y + pose_D * vel_error_y, 
+            if (self.target_msg.twist.twist.linear.x == 0.0 and self.target_msg.twist.twist.linear.y == 0.0):
+                pose_P_x *= 0.7
+                # pose_P_y *= 1.3
+                pose_D *= 1.8
+            self.controller.force_control(pose_P_x * pose_error_x + pose_D * vel_error_x,
+                                          pose_P_y * pose_error_y + pose_D * vel_error_y, 
                                         yaw_P * yaw_error_deg + yaw_D * yaw_velocity_deg)
             debug_msg.pose_x_error = pose_error_x
             debug_msg.pose_y_error = pose_error_y
@@ -174,6 +184,10 @@ class HovercraftController:
         debug_msg.is_auto = self.is_autonomous
         debug_msg.yaw_error_deg = yaw_error_deg
         debug_msg.vel_yaw_error_deg = yaw_velocity_deg
+        debug_msg.pose_x_error = pose_error_x
+        debug_msg.pose_y_error = pose_error_y
+        debug_msg.vel_x_error = vel_error_x
+        debug_msg.vel_y_error = vel_error_y
         self.debug_publisher.publish(debug_msg)
             
     def debug_timer_callback(self, event):

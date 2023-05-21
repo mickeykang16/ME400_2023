@@ -170,7 +170,7 @@ class PWM_control:
             
         if f_y > MAX_FORCE:
             f_y = MAX_FORCE
-        elif f_y < MAX_FORCE:
+        elif f_y < -MAX_FORCE:
             f_y = -MAX_FORCE
         
         desired_f = np.array([torque, f_x, f_y])
