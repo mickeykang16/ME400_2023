@@ -1,6 +1,10 @@
 <launch>
     <arg name="map_file" default="$(find hover_planning)/data/map.yaml"/>
+    <arg name="gen_waypoints" default="0"/>
     <node name="map" pkg="map_server" type="map_server" args="$(arg map_file)"/>
     <node name="transform" pkg="hover_planning" type="generate_robot_tf.py" output="screen"/>
-    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="map_laser" args="1 0 0 0 0 0 1 map laser" /> -->
+    <group if="$(eval arg('gen_waypoints') == 1)">
+        <node name="waypoints" pkg="hover_planning" type="generate_waypoints.py" output="screen"/>
+    </group>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_robot" args="0 0 0 0 0 0.707 0.707 laser robot" />
 </launch>
