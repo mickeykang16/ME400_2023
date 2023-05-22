@@ -10,6 +10,8 @@ MAX_THROTTLE_MS = 2.0
 MIN_THROTTLE_MS = 1.0
 GRAVITY=9.81
 THROTTLE_DEADBAND = 20.0
+MAX_TORQUE = 0.3
+MAX_FORCE = 1.0
 
 # use SI unit excpet unit is specified
 class PWM_control:
@@ -26,13 +28,14 @@ class PWM_control:
         pca.frequency = PWM_FREQUENCY
         self.pwm_ = pca
         self.throttle_ = [0.0, 0.0, 0.0, 0.0]
+        # torque f_x f_y
+        self.current_force_input = [0.0, 0.0, 0.0]
         self.bidirectional = bidirectional
         self.max_throttle = max
         self.throttle_deadband = THROTTLE_DEADBAND
         # init throttle thrust mapping
         self.thrust_map = []
         self.zero_throttle_idx = -1
-        #f = open(rospack.get_path('hover_control') + "/data/thrust_new.txt", 'r')
         with open('/home/pi/thrust_new.txt', 'r') as f:
             lines = f.readlines()
         idx = 0
@@ -61,7 +64,6 @@ class PWM_control:
         sin = math.sin(math.pi/3)
         cos = math.cos(math.pi/3)
         self.control_mat = np.array([[-radius_cm/100.0, radius_cm/100.0, radius_cm/100.0],[sin, sin, 0.0],[-cos, cos, -1.0]])
-        # self.control_mat_inv = np.linalg.inv(control_mat)
         self.stop_all()
 
     def __del__(self):
@@ -156,8 +158,23 @@ class PWM_control:
         return throttle
         
     def force_control(self, f_x = 0.0, f_y = 0.0, torque = 0.0):
+        if torque > MAX_TORQUE:
+            torque = MAX_TORQUE
+        elif torque < -MAX_TORQUE:
+            torque = -MAX_TORQUE
+            
+        if f_x > MAX_FORCE:
+            f_x = MAX_FORCE
+        elif f_x < -MAX_FORCE:
+            f_x = -MAX_FORCE
+            
+        if f_y > MAX_FORCE:
+            f_y = MAX_FORCE
+        elif f_y < -MAX_FORCE:
+            f_y = -MAX_FORCE
+        
         desired_f = np.array([torque, f_x, f_y])
-        #desired_f = np.array([torque, f_y, -f_x])
+        self.current_force_input = desired_f
         sin = math.sin(-math.pi/2)
         cos = math.cos(-math.pi/2)
         r = np.array([[1, 0, 0],[0, cos, -sin],[0, sin, cos]])
@@ -167,3 +184,11 @@ class PWM_control:
         self.set_throttle(1, self.force_to_throttle(motor_force[0]))
         self.set_throttle(2, self.force_to_throttle(motor_force[1]))
         self.set_throttle(3, self.force_to_throttle(motor_force[2]))
+        
+        
+    def get_torque(self):
+        return self.current_force_input[0]
+    def get_f_x(self):
+        return self.current_force_input[1]
+    def get_f_y(self):
+        return self.current_force_input[2]
