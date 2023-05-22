@@ -8,6 +8,8 @@ import numpy as np
 import os, json
 from math import sqrt
 
+# TODOS: Add interpolation
+
 class Waypoints():
     def __init__(self, pt_type=0, x=0, y=0, vx=0, vy=0, yaw=0):
         self.type = pt_type
@@ -30,14 +32,16 @@ class robotTF():
         self.yaw = -np.pi/2
         self.init_origin = False
         # self.prev_time_imu = 0
+        # print(rospy.get_param_names())
+        self.interpolate_distance = float(rospy.get_param("/transform/interpolate_distance"))
         self.prev_msg = [0, 0, 0, 0]
         self.use_back = True
+        self.prev_back = True
         rospack = rospkg.RosPack()
         file_path = rospack.get_path('hover_planning')
         self.stop_start = 0
         self.arrive = False
         self.waypoint_index = 0
-        self.threshold = 0.3
         self.waypoints = self.generate_waypoints(file_path)
         self.prev_time = 0
         rospy.Subscriber('/map', nav_msgs.msg.OccupancyGrid, self.get_map)
@@ -76,6 +80,7 @@ class robotTF():
         t.child_frame_id = "laser"
         self.prev_x = self.x
         self.prev_y = self.y
+        self.prev_back = self.use_back
         self.yaw = np.pi/2-msg.angle_left # np.pi-msg.angle_left
 
         # print(abs(msg.distance_back + msg.distance_front - 10), self.use_back)
@@ -100,17 +105,22 @@ class robotTF():
                 x_dist = msg.distance_back
             if self.init_origin and abs(x_dist - self.x) > 0.7 and abs(self.x - (10 - msg.distance_front)) < 0.5:
                 self.x = 10 - msg.distance_front
+                self.use_back = False
             else:
                 self.x = x_dist
         else:
             x_dist = 10 - msg.distance_front
             if self.init_origin and abs(x_dist - self.x) > 0.7:
+                self.use_back = True
                 if msg.distance_back + msg.distance_front < 3.5:
                     self.x = msg.distance_back + 8
                 else:
                     self.x = msg.distance_back
             else:
                 self.x = x_dist
+        
+        # if self.prev_back != self.use_back:
+        #     print(self.prev_x, self.x)
 
         y_dist = -msg.distance_left
         if self.init_origin and abs(self.y - y_dist) > 0.5:
@@ -138,6 +148,18 @@ class robotTF():
             self.init_origin = True
         
         self.publish_msg()
+    
+    def __interpolate_point__(self, waypoint, dist):
+        # use self.x, self.y and waypoint to get the middle point
+        # get the distance fraction and calcuate the ration, multiply to the x and y diff
+        ratio = self.interpolate_distance / dist # need to consider direction
+        if ratio < 1:
+            ret_x = self.x + (waypoint.x - self.x) * ratio
+            ret_y = self.y + (waypoint.y - self.y) * ratio
+        else:
+            ret_x = waypoint.x
+            ret_y = waypoint.y
+        return ret_x, ret_y
     
     def publish_msg(self):
         # first implement robot pose publisher
@@ -167,8 +189,20 @@ class robotTF():
         # then implement pose checker
         # in the case of type 1, if the difference becomes smaller than threshold, load the next values
         waypoint = self.waypoints[self.waypoint_index]
+        if self.waypoint_index < len(self.waypoints) - 1:
+            nxt_waypoint = self.waypoints[self.waypoint_index]
+        else:
+            nxt_waypoint = waypoint
         dist = sqrt((self.x - waypoint.x)**2+(self.y-waypoint.y)**2)
-        if dist < self.threshold and waypoint.type == 0:
+        dist_nxt = sqrt((self.x - nxt_waypoint.x)**2+(self.y-nxt_waypoint.y)**2)
+
+        # in the case of self.use_back != self.prev_back => make sure it does not go backward weirdly
+        # check the difference in self.prev_x and self.x, too
+        # HERE
+        # if self.use_back != self.prev_back and self.prev_x > self.x:
+        # do not go backward, read the waypoint with further distance
+
+        if (dist < self.interpolate_distance or dist < dist_nxt) and waypoint.type == 0:
             self.waypoint_index += 1
         elif dist < 0.15 and waypoint.type == 1:
             if self.arrive == False:
@@ -178,19 +212,33 @@ class robotTF():
                 # need to stop
                 self.waypoint_index += 1
                 self.arrive = False
+        # for better time check
+        if waypoint.type == 1 and self.arrive and dist > 0.15:
+            self.arrive = False
+
         if self.waypoint_index >= len(self.waypoints):
             self.waypoint_index = len(self.waypoints) - 1
         
-        ret_waypoint = self.waypoints[self.waypoint_index]
-        # if waypoint.type == 0 and ret_waypoint.type == 1:
-        #     self.stop_start = curr_time
+        # need to check whether the ret_waypoint dist > self.interpolate_dist, unless type 1
+        while True:
+            ret_waypoint = self.waypoints[self.waypoint_index]
+            ret_dist = sqrt((self.x - ret_waypoint.x)**2+(self.y-ret_waypoint.y)**2)
+            if self.waypoint_index == len(self.waypoints) - 1:
+                way_x, way_y = self.__interpolate_point__(ret_waypoint, ret_dist)
+                break
+            elif ret_waypoint.type == 1 or ret_dist >= self.interpolate_distance:
+                way_x, way_y = self.__interpolate_point__(ret_waypoint, ret_dist)
+                break
+            else:
+                self.waypoint_index += 1
+        
 
         way_msg = nav_msgs.msg.Odometry()
         way_msg.header.stamp = curr_time
         way_msg.header.frame_id = "map"
         way_msg.child_frame_id = "robot"
-        way_msg.pose.pose.position.x = ret_waypoint.x
-        way_msg.pose.pose.position.y = ret_waypoint.y
+        way_msg.pose.pose.position.x = way_x
+        way_msg.pose.pose.position.y = way_y
         way_msg.pose.pose.position.z = 0
         quat = ret_waypoint.quat
         way_msg.pose.pose.orientation.x = quat[0]
