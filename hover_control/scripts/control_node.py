@@ -14,7 +14,7 @@ from laser_processing.msg import ControlDebug
 from ds4_driver.msg import Status
 from nav_msgs.msg import Odometry
 
-HOVERING_POWER = 57.0
+HOVERING_POWER = 55.0
 
 def euler_from_quaternion(x, y, z, w):
         """
@@ -115,12 +115,14 @@ class HovercraftController:
             vel_error_x = 0
             vel_error_y = 0
             
-        yaw_P = 0.05
-        yaw_D = 0.008
+        # yaw_P = 0.05
+        # yaw_D = 0.008
+        yaw_P = 0.005
+        yaw_D = 0.01
         
-        pose_P_x = 1.0
-        pose_P_y = 1.1
-        pose_D = 0.8
+        pose_P_x = 1.5
+        pose_P_y = 1.6
+        pose_D = 1.0
         # Manual operation case
         if (can_operate and (not self.is_autonomous) and self.twist_msg.linear.z > 0.9):
             if self.controller.get_throttle(0) == 0.0:
@@ -136,6 +138,7 @@ class HovercraftController:
             self.controller.force_control(self.twist_msg.linear.x, \
                 self.twist_msg.linear.y, 
                 yaw_P * yaw_error_deg + yaw_D * yaw_velocity_deg)
+            # 0.0)
         # Autonomous
         elif (can_operate and self.is_autonomous and (not auto_timeout)):
             # Activate main hovering motor
@@ -150,10 +153,14 @@ class HovercraftController:
                 yaw_error_deg -= 360.0
             elif (yaw_error_deg < -180.0):
                 yaw_error_deg += 360.0
-            if (self.target_msg.twist.twist.linear.x == 0.0 and self.target_msg.twist.twist.linear.y == 0.0):
-                pose_P_x *= 0.7
-                # pose_P_y *= 1.3
-                pose_D *= 1.8
+            if (self.target_msg.pose.pose.position.z == -1):
+                # pose_P_x *= 0.7
+                # pose_P_y *= 0.7
+                if (abs(vel_error_x) > 0.3):
+                    pose_P_x *= 0.7
+                if (abs(vel_error_y) > 0.3):
+                    pose_P_y *= 0.7
+                pose_D *= 1.5
             self.controller.force_control(pose_P_x * pose_error_x + pose_D * vel_error_x,
                                           pose_P_y * pose_error_y + pose_D * vel_error_y, 
                                         yaw_P * yaw_error_deg + yaw_D * yaw_velocity_deg)

@@ -113,11 +113,11 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
     if (abs(line_msgs->line_segments[i].angle + ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_front_ + 3.14) < 0.3){
       if (line_msgs->line_segments[i].start[0] > 0){
         // right 0, 4 -> front
-          idx = 0;
+          idx = 1;
         }
         else{
         // left 1, 5 -> back
-          idx = 1;
+          idx = 0;
         }
         if ((line_msgs->line_segments[i].start[1] * line_msgs->line_segments[i].end[1]) < 0){
           change_sign = true;
@@ -126,11 +126,11 @@ void LaserProcessingROS::laserLineCallback(const laser_line_extraction::LineSegm
     else if (abs(line_msgs->line_segments[i].angle - ref_angle_right_) < 0.3 | abs(line_msgs->line_segments[i].angle - ref_angle_right_ + 3.14) < 0.3){
       if (line_msgs->line_segments[i].start[1] > 0){
         // front 2, 6 -> left
-        idx = 2;
+        idx = 3;
       }
       else{
         // back 3, 7 -> right
-        idx = 3;
+        idx = 2;
       }
       if ((line_msgs->line_segments[i].start[0] * line_msgs->line_segments[i].end[0]) < 0){
         change_sign = true;

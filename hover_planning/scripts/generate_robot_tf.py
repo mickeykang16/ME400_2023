@@ -29,6 +29,8 @@ class robotTF():
         self.prev_y = 0
         self.x = 0
         self.y = 0
+        self.prev_vx = 0
+        self.prev_vy = 0
         self.yaw = -np.pi/2
         self.init_origin = False
         # self.prev_time_imu = 0
@@ -123,14 +125,17 @@ class robotTF():
         #     print(self.prev_x, self.x)
 
         y_dist = -msg.distance_left
-        if self.init_origin and abs(self.y - y_dist) > 0.5:
-            # transform right distance to relative left
-            if self.x > 7:
-                self.y = -4.5 + msg.distance_right
-            else:
-                self.y = -2.5 + msg.distance_right
-        else:
-            self.y = y_dist
+        self.y = y_dist
+        if (msg.distance_front + msg.distance_back) < 4:
+            self.y = -4.5+msg.distance_right
+        # if self.init_origin and abs(self.y - y_dist) > 1.2:
+        #     # transform right distance to relative left
+        #     if self.x > 7:
+        #         self.y = -4.5 + msg.distance_right
+        #     else:
+        #         self.y = -2.5 + msg.distance_right
+        # else:
+        #     self.y = y_dist
         
         t.transform.translation.x = self.x
         t.transform.translation.y = self.y
@@ -179,9 +184,17 @@ class robotTF():
         if self.prev_time != 0:
             dt = (curr_time - self.prev_time).to_sec()
             if dt != 0:
+                # vx = (self.x - self.prev_x) / dt
+                # if abs(vx - self.prev_vx) > 0.5:
+                #     vx = self.prev_vx
+                # vy = (self.y - self.prev_y) / dt
+                # if abs(vy - self.prev_vy) > 0.5:
+                #     vy = self.prev_vy
                 robot_msg.twist.twist.linear.x = (self.x - self.prev_x) / dt
                 robot_msg.twist.twist.linear.y = (self.y - self.prev_y) / dt
                 robot_msg.twist.twist.linear.z = 0
+                # self.prev_vx = vx
+                # self.prev_vy = vy
         # maybe twist, too?
         self.robot_odom_publisher.publish(robot_msg)
         self.prev_time = curr_time
@@ -190,7 +203,7 @@ class robotTF():
         # in the case of type 1, if the difference becomes smaller than threshold, load the next values
         waypoint = self.waypoints[self.waypoint_index]
         if self.waypoint_index < len(self.waypoints) - 1:
-            nxt_waypoint = self.waypoints[self.waypoint_index]
+            nxt_waypoint = self.waypoints[self.waypoint_index + 1]
         else:
             nxt_waypoint = waypoint
         dist = sqrt((self.x - waypoint.x)**2+(self.y-waypoint.y)**2)
@@ -202,7 +215,7 @@ class robotTF():
         # if self.use_back != self.prev_back and self.prev_x > self.x:
         # do not go backward, read the waypoint with further distance
 
-        if (dist < self.interpolate_distance or dist < dist_nxt) and waypoint.type == 0:
+        if (dist < self.interpolate_distance or dist > dist_nxt) and waypoint.type == 0:
             self.waypoint_index += 1
         elif dist < 0.15 and waypoint.type == 1:
             if self.arrive == False:
@@ -213,7 +226,7 @@ class robotTF():
                 self.waypoint_index += 1
                 self.arrive = False
         # for better time check
-        if waypoint.type == 1 and self.arrive and dist > 0.15:
+        if waypoint.type == 1 and self.arrive and dist > 0.25:
             self.arrive = False
 
         if self.waypoint_index >= len(self.waypoints):
@@ -239,7 +252,10 @@ class robotTF():
         way_msg.child_frame_id = "robot"
         way_msg.pose.pose.position.x = way_x
         way_msg.pose.pose.position.y = way_y
-        way_msg.pose.pose.position.z = 0
+        if ret_waypoint.type == 1:
+            way_msg.pose.pose.position.z = -1
+        else:
+            way_msg.pose.pose.position.z = 0
         quat = ret_waypoint.quat
         way_msg.pose.pose.orientation.x = quat[0]
         way_msg.pose.pose.orientation.y = quat[1]
