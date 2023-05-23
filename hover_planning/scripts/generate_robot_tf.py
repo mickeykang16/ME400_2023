@@ -116,16 +116,18 @@ class robotTF():
                 self.use_back = True
             else:
                 self.use_back = False
-        elif abs(msg.distance_back + msg.distance_front - 10) < 0.2:
+        elif abs(msg.distance_back + msg.distance_front - 10) < 0.2 or abs(msg.distance_back + msg.distance_front - 2) < 0.2:
             # Maybe at the stopping point?
             if msg.distance_front < 3.0:
                 self.use_back = False
+            else:
+                self.use_back = True
         elif msg.distance_front > 5 and msg.distance_back < 3.5:
             self.use_back = True
 
         # watch out when one distance value is weird!
         if self.use_back:
-            if msg.distance_back + msg.distance_front < 3.5 and msg.distance_front > 0.5:
+            if msg.distance_back + msg.distance_front < 3.5 and msg.distance_front > 0.1:
                 x_dist = msg.distance_back + 8
             else:
                 x_dist = msg.distance_back
@@ -258,7 +260,7 @@ class robotTF():
                 self.waypoint_index += 1
                 self.arrive = False
                 # pass the current type 1 point -> delete it from the self.stop_list
-                self.stopping_waypoints.pop(0)
+                # self.stopping_waypoints.pop(0)
           
         # for better time check, allow more error
         if waypoint.type == 1 and self.arrive and dist > 0.25:
@@ -279,16 +281,19 @@ class robotTF():
                 break
             else:
                 self.waypoint_index += 1
+        if self.waypoint_index >= len(self.waypoints):
+            self.waypoint_index = len(self.waypoints) - 1
         
-        nearest_stop_wp = self.stopping_waypoints[0]
+        # nearest_stop_wp = self.stopping_waypoints[0]
         # target_vx = ret_waypoint.vx
         # target_vy = ret_waypoint.vy
         # currently, directly change the waypoint velocity
         # may need to set it as only current vx (but that can make the control noisy)
-        if not self.possible_to_stop(abs(self.x - nearest_stop_wp.x), vx):
-            ret_waypoint.vx = 0
-        if not self.possible_to_stop(abs(self.y - nearest_stop_wp.y), vy):
-            ret_waypoint.vy = 0
+        if ret_waypoint.type == 1:
+            if not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx):
+                ret_waypoint.vx = 0
+            if not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy):
+                ret_waypoint.vy = 0
         
         way_msg = nav_msgs.msg.Odometry()
         way_msg.header.stamp = curr_time

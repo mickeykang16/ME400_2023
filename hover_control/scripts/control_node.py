@@ -120,7 +120,7 @@ class HovercraftController:
         yaw_P = 0.005
         yaw_D = 0.01
         
-        pose_P_x = 1.5
+        pose_P_x = 1.6
         pose_P_y = 1.6
         pose_D = 1.0
         # Manual operation case
@@ -153,14 +153,20 @@ class HovercraftController:
                 yaw_error_deg -= 360.0
             elif (yaw_error_deg < -180.0):
                 yaw_error_deg += 360.0
+                
+            
             if (self.target_msg.pose.pose.position.z == -1):
-                # pose_P_x *= 0.7
-                # pose_P_y *= 0.7
-                if (abs(vel_error_x) > 0.3):
-                    pose_P_x *= 0.7
-                if (abs(vel_error_y) > 0.3):
-                    pose_P_y *= 0.7
                 pose_D *= 1.5
+                if (abs(vel_error_x) < 0.2):
+                    pose_P_x *= 1.2
+                if (abs(vel_error_y) < 0.2):
+                    pose_P_y *= 1.2
+            # else:
+            #     if (abs(pose_error_x) > 0.2):
+            #         pose_P_x *= 1.2
+            #     if (abs(pose_error_y) > 0.2):
+            #         pose_P_y *= 1.2
+            
             self.controller.force_control(pose_P_x * pose_error_x + pose_D * vel_error_x,
                                           pose_P_y * pose_error_y + pose_D * vel_error_y, 
                                         yaw_P * yaw_error_deg + yaw_D * yaw_velocity_deg)
