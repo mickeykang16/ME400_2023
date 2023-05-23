@@ -2,9 +2,13 @@
     <arg name="map_file" default="$(find hover_planning)/data/map.yaml"/>
     <arg name="gen_waypoints" default="0"/>
     <arg name="interpolate_distance" default="0.3"/>
+    <arg name="mean_v" default="0.4"/>
+    <arg name="max_a" default="0.5"/>
     <node name="map" pkg="map_server" type="map_server" args="$(arg map_file)"/>
     <node name="transform" pkg="hover_planning" type="generate_robot_tf.py" output="screen">
         <param name="~interpolate_distance" value="$(arg interpolate_distance)"/>
+        <param name="~mean_v" value="$(arg mean_v)"/>
+        <param name="~max_a" value="$(arg max_a)"/>
     </node>
     <group if="$(eval arg('gen_waypoints') == 1)">
         <node name="waypoints" pkg="hover_planning" type="generate_waypoints.py" output="screen"/>

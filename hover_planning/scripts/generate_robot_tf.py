@@ -8,16 +8,20 @@ import numpy as np
 import os, json
 from math import sqrt
 
-# TODOS: Add interpolation
+# TODOS: generate velocity based on the waypoint
+# decide when to set velocity to 0 when the next or current waypoint type is 1
+# max vel 0.4, max acc 0.5 -> parameter
 
 class Waypoints():
     def __init__(self, pt_type=0, x=0, y=0, vx=0, vy=0, yaw=0):
         self.type = pt_type
         self.x = x
         self.y = y
+        self.quat = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw)
+    def set_velocity(self, vx, vy):
         self.vx = vx
         self.vy = vy
-        self.quat = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw)
+    
 
 class robotTF():
     def __init__(self, map_size=(202, 92), resolution=0.05):
@@ -36,6 +40,8 @@ class robotTF():
         # self.prev_time_imu = 0
         # print(rospy.get_param_names())
         self.interpolate_distance = float(rospy.get_param("/transform/interpolate_distance"))
+        self.mean_v = float(rospy.get_param("/transform/mean_v"))
+        self.max_a = float(rospy.get_param("/transform/max_a"))
         self.prev_msg = [0, 0, 0, 0]
         self.use_back = True
         self.prev_back = True
@@ -44,7 +50,7 @@ class robotTF():
         self.stop_start = 0
         self.arrive = False
         self.waypoint_index = 0
-        self.waypoints = self.generate_waypoints(file_path)
+        self.waypoints, self.stopping_waypoints = self.generate_waypoints(file_path)
         self.prev_time = 0
         rospy.Subscriber('/map', nav_msgs.msg.OccupancyGrid, self.get_map)
         rospy.Subscriber('/lanes', laser_processing.msg.Lanes, self.generate_robot_pose)
@@ -56,11 +62,29 @@ class robotTF():
         path = os.path.join(file_path, "data/waypoints.json")
         # print(path)
         return_list = []
+        stop_list = []
+
         with open(path, "r") as f:
             infos = json.load(f)
             for info in infos:
-                return_list.append(Waypoints(info["type"], info["x"], info["y"], info["vx"], info["vy"], info["yaw"]))
-        return return_list
+                wp = Waypoints(info["type"], info["x"], info["y"], info["yaw"])
+                if len(return_list) == 0:
+                    # the first point, assume go straight
+                    wp.set_velocity(vx=self.mean_v, vy=0)
+                else:
+                    prev_wp = return_list[-1]
+                    x_diff = wp.x - prev_wp.x
+                    y_diff = wp.y - prev_wp.y
+                    dist = sqrt(x_diff**2 + y_diff**2)
+                    ratio = self.mean_v / dist
+                    vx = ratio * x_diff
+                    vy = ratio * y_diff
+                    wp.set_velocity(vx, vy)
+                return_list.append(wp)
+                if wp.type == 1:
+                    stop_list.append(wp)
+        # generate vx and vy commponent and the stoppint waypoint
+        return return_list, stop_list
     
     def get_map(self, msg):
         self.map = np.array(msg.data).reshape(self.map.shape)
@@ -165,6 +189,10 @@ class robotTF():
             ret_x = waypoint.x
             ret_y = waypoint.y
         return ret_x, ret_y
+
+    def possible_to_stop(self, dist, vel):
+        # using 2as = v^2 - v0^2
+        return (vel**2 / (2*self.max_a)) > dist
     
     def publish_msg(self):
         # first implement robot pose publisher
@@ -181,6 +209,7 @@ class robotTF():
         robot_msg.pose.pose.orientation.y = quat[1]
         robot_msg.pose.pose.orientation.z = quat[2]
         robot_msg.pose.pose.orientation.w = quat[3]
+        vx, vy = 0, 0
         if self.prev_time != 0:
             dt = (curr_time - self.prev_time).to_sec()
             if dt != 0:
@@ -190,8 +219,10 @@ class robotTF():
                 # vy = (self.y - self.prev_y) / dt
                 # if abs(vy - self.prev_vy) > 0.5:
                 #     vy = self.prev_vy
-                robot_msg.twist.twist.linear.x = (self.x - self.prev_x) / dt
-                robot_msg.twist.twist.linear.y = (self.y - self.prev_y) / dt
+                vx = (self.x - self.prev_x) / dt
+                vy = (self.y - self.prev_y) / dt
+                robot_msg.twist.twist.linear.x = vx
+                robot_msg.twist.twist.linear.y = vy
                 robot_msg.twist.twist.linear.z = 0
                 # self.prev_vx = vx
                 # self.prev_vy = vy
@@ -215,6 +246,7 @@ class robotTF():
         # if self.use_back != self.prev_back and self.prev_x > self.x:
         # do not go backward, read the waypoint with further distance
 
+        # if it is close enough to the current waypoint or the next way point is closser
         if (dist < self.interpolate_distance or dist > dist_nxt) and waypoint.type == 0:
             self.waypoint_index += 1
         elif dist < 0.15 and waypoint.type == 1:
@@ -225,7 +257,10 @@ class robotTF():
                 # need to stop
                 self.waypoint_index += 1
                 self.arrive = False
-        # for better time check
+                # pass the current type 1 point -> delete it from the self.stop_list
+                self.stopping_waypoints.pop(0)
+          
+        # for better time check, allow more error
         if waypoint.type == 1 and self.arrive and dist > 0.25:
             self.arrive = False
 
@@ -245,7 +280,16 @@ class robotTF():
             else:
                 self.waypoint_index += 1
         
-
+        nearest_stop_wp = self.stopping_waypoints[0]
+        # target_vx = ret_waypoint.vx
+        # target_vy = ret_waypoint.vy
+        # currently, directly change the waypoint velocity
+        # may need to set it as only current vx (but that can make the control noisy)
+        if not self.possible_to_stop(abs(self.x - nearest_stop_wp.x), vx):
+            ret_waypoint.vx = 0
+        if not self.possible_to_stop(abs(self.y - nearest_stop_wp.y), vy):
+            ret_waypoint.vy = 0
+        
         way_msg = nav_msgs.msg.Odometry()
         way_msg.header.stamp = curr_time
         way_msg.header.frame_id = "map"
