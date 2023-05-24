@@ -13,14 +13,15 @@ from math import sqrt
 # max vel 0.4, max acc 0.5 -> parameter
 
 class Waypoints():
-    def __init__(self, pt_type=0, x=0, y=0, vx=0, vy=0, yaw=0):
+    def __init__(self, pt_type=0, x=0, y=0, yaw=0, vel_scale=1):
         self.type = pt_type
         self.x = x
         self.y = y
         self.quat = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw)
+        self.vel_scale = vel_scale
     def set_velocity(self, vx, vy):
-        self.vx = vx
-        self.vy = vy
+        self.vx = vx / self.vel_scale
+        self.vy = vy / self.vel_scale
     
 
 class robotTF():
@@ -67,7 +68,7 @@ class robotTF():
         with open(path, "r") as f:
             infos = json.load(f)
             for info in infos:
-                wp = Waypoints(info["type"], info["x"], info["y"], info["yaw"])
+                wp = Waypoints(info["type"], info["x"], info["y"], info["yaw"], info["vel_scale"])
                 if len(return_list) == 0:
                     # the first point, assume go straight
                     wp.set_velocity(vx=self.mean_v, vy=0)
