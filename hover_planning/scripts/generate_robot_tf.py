@@ -20,8 +20,8 @@ class Waypoints():
         self.quat = tf_conversions.transformations.quaternion_from_euler(0, 0, yaw)
         self.vel_scale = vel_scale
     def set_velocity(self, vx, vy):
-        self.vx = vx / self.vel_scale
-        self.vy = vy / self.vel_scale
+        self.vx = vx * self.vel_scale
+        self.vy = vy * self.vel_scale
     
 
 class robotTF():
