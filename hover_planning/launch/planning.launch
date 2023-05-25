@@ -3,7 +3,7 @@
     <arg name="gen_waypoints" default="0"/>
     <arg name="interpolate_distance" default="0.3"/>
     <arg name="mean_v" default="0.4"/>
-    <arg name="max_a" default="0.5"/>
+    <arg name="max_a" default="0.6"/>
     <node name="map" pkg="map_server" type="map_server" args="$(arg map_file)"/>
     <node name="transform" pkg="hover_planning" type="generate_robot_tf.py" output="screen">
         <param name="~interpolate_distance" value="$(arg interpolate_distance)"/>

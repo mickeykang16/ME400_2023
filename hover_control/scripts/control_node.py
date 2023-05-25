@@ -158,7 +158,7 @@ class HovercraftController:
             if (self.target_msg.pose.pose.position.z == -1):
                 pose_D *= 1.5
                 if (abs(vel_error_x) < 0.2):
-                    pose_P_x *= 1.2
+                    pose_P_x *= 1.3
                 if (abs(vel_error_y) < 0.2):
                     pose_P_y *= 1.2
             # else:

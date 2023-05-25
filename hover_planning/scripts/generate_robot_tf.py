@@ -82,7 +82,7 @@ class robotTF():
                     vy = ratio * y_diff
                     wp.set_velocity(vx, vy)
                 return_list.append(wp)
-                if wp.type == 1:
+                if wp.type >= 1:
                     stop_list.append(wp)
         # generate vx and vy commponent and the stoppint waypoint
         return return_list, stop_list
@@ -252,11 +252,11 @@ class robotTF():
         # if it is close enough to the current waypoint or the next way point is closser
         if (dist < self.interpolate_distance or dist > dist_nxt) and waypoint.type == 0:
             self.waypoint_index += 1
-        elif dist < 0.15 and waypoint.type == 1:
+        elif dist < 0.15 and waypoint.type >= 1:
             if self.arrive == False:
                 self.arrive = True
                 self.stop_start = curr_time
-            elif (curr_time - self.stop_start).to_sec() > 5:
+            elif (waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 4) or (waypoint.type == 2 and (curr_time - self.stop_start).to_sec() > 1):
                 # need to stop
                 self.waypoint_index += 1
                 self.arrive = False
@@ -264,7 +264,7 @@ class robotTF():
                 # self.stopping_waypoints.pop(0)
           
         # for better time check, allow more error
-        if waypoint.type == 1 and self.arrive and dist > 0.25:
+        if waypoint.type >= 1 and self.arrive and dist > 0.25:
             self.arrive = False
 
         if self.waypoint_index >= len(self.waypoints):
@@ -277,7 +277,7 @@ class robotTF():
             if self.waypoint_index == len(self.waypoints) - 1:
                 way_x, way_y = self.__interpolate_point__(ret_waypoint, ret_dist)
                 break
-            elif ret_waypoint.type == 1 or ret_dist >= self.interpolate_distance:
+            elif ret_waypoint.type >= 1 or ret_dist >= self.interpolate_distance:
                 way_x, way_y = self.__interpolate_point__(ret_waypoint, ret_dist)
                 break
             else:
@@ -290,7 +290,7 @@ class robotTF():
         # target_vy = ret_waypoint.vy
         # currently, directly change the waypoint velocity
         # may need to set it as only current vx (but that can make the control noisy)
-        if ret_waypoint.type == 1:
+        if ret_waypoint.type >= 1:
             if not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx):
                 ret_waypoint.vx = 0
             if not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy):
@@ -302,7 +302,7 @@ class robotTF():
         way_msg.child_frame_id = "robot"
         way_msg.pose.pose.position.x = way_x
         way_msg.pose.pose.position.y = way_y
-        if ret_waypoint.type == 1:
+        if ret_waypoint.type >= 1:
             way_msg.pose.pose.position.z = -1
         else:
             way_msg.pose.pose.position.z = 0
