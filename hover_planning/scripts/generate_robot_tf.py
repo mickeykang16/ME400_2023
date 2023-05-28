@@ -4,6 +4,7 @@ import tf_conversions, tf2_ros
 import laser_processing.msg
 import geometry_msgs.msg
 import nav_msgs.msg
+import std_msgs.msg
 import numpy as np
 import os, json
 from math import sqrt
@@ -57,7 +58,7 @@ class robotTF():
         rospy.Subscriber('/lanes', laser_processing.msg.Lanes, self.generate_robot_pose)
         self.robot_odom_publisher = rospy.Publisher('/robot_odom', nav_msgs.msg.Odometry, queue_size=10)
         self.target_odom_publisher = rospy.Publisher('/target_odom', nav_msgs.msg.Odometry, queue_size=10)
-
+        self.wall_debug_publisher = rospy.Publisher('/wall_use_back', std_msgs.msg.Bool, queue_size = 10)
 
     def generate_waypoints(self, file_path):
         path = os.path.join(file_path, "data/waypoints.json")
@@ -117,13 +118,15 @@ class robotTF():
                 self.use_back = True
             else:
                 self.use_back = False
-        elif abs(msg.distance_back + msg.distance_front - 10) < 0.2 or abs(msg.distance_back + msg.distance_front - 2) < 0.2:
-            # Maybe at the stopping point?
-            if msg.distance_front < 3.0:
-                self.use_back = False
-            else:
-                self.use_back = True
-        elif msg.distance_front > 5 and msg.distance_back < 3.5:
+        elif msg.distance_front < 4.5 and msg.distance_back > 3.5:
+            self.use_back = False
+        # elif abs(msg.distance_back + msg.distance_front - 10) < 0.5 or abs(msg.distance_back + msg.distance_front - 2) < 0.5:
+        #     # Maybe at the stopping point?
+        #     if msg.distance_front < 5.5:
+        #         self.use_back = False
+        #     else:
+        #         self.use_back = True
+        elif msg.distance_front > 5.5 and msg.distance_back < 3.5:
             self.use_back = True
 
         # watch out when one distance value is weird!
@@ -139,7 +142,7 @@ class robotTF():
                 self.x = x_dist
         else:
             x_dist = 10 - msg.distance_front
-            if self.init_origin and abs(x_dist - self.x) > 0.7:
+            if self.init_origin and abs(x_dist - self.x) > 1.0:
                 self.use_back = True
                 if msg.distance_back + msg.distance_front < 3.5:
                     self.x = msg.distance_back + 8
@@ -252,11 +255,11 @@ class robotTF():
         # if it is close enough to the current waypoint or the next way point is closser
         if (dist < self.interpolate_distance or dist > dist_nxt) and waypoint.type == 0:
             self.waypoint_index += 1
-        elif dist < 0.15 and waypoint.type >= 1:
+        elif dist < 0.2 and waypoint.type >= 1:
             if self.arrive == False:
                 self.arrive = True
                 self.stop_start = curr_time
-            elif (waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 4) or (waypoint.type == 2 and (curr_time - self.stop_start).to_sec() > 1):
+            elif (waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 4) or (waypoint.type == 2 and (curr_time - self.stop_start).to_sec() > 0.5):
                 # need to stop
                 self.waypoint_index += 1
                 self.arrive = False
@@ -291,9 +294,9 @@ class robotTF():
         # currently, directly change the waypoint velocity
         # may need to set it as only current vx (but that can make the control noisy)
         if ret_waypoint.type >= 1:
-            if not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx):
+            if not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx) and abs(self.x - ret_waypoint.x) < 1:
                 ret_waypoint.vx = 0
-            if not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy):
+            if not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy)  and abs(self.y - ret_waypoint.y) < 1:
                 ret_waypoint.vy = 0
         
         way_msg = nav_msgs.msg.Odometry()
@@ -302,7 +305,7 @@ class robotTF():
         way_msg.child_frame_id = "robot"
         way_msg.pose.pose.position.x = way_x
         way_msg.pose.pose.position.y = way_y
-        if ret_waypoint.type >= 1:
+        if ret_waypoint.vx == 0:
             way_msg.pose.pose.position.z = -1
         else:
             way_msg.pose.pose.position.z = 0
@@ -316,6 +319,10 @@ class robotTF():
         way_msg.twist.twist.linear.z = 0
         # maybe twist, too?
         self.target_odom_publisher.publish(way_msg)
+        
+        bool_msg = std_msgs.msg.Bool()
+        bool_msg.data = self.use_back
+        self.wall_debug_publisher.publish(bool_msg)
         
 
 if __name__ == '__main__':
