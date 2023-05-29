@@ -118,7 +118,7 @@ class robotTF():
                 self.use_back = True
             else:
                 self.use_back = False
-        elif msg.distance_front < 4.5 and msg.distance_back > 3.5:
+        elif msg.distance_front < 6.0 and msg.distance_back > 3.5:
             self.use_back = False
         # elif abs(msg.distance_back + msg.distance_front - 10) < 0.5 or abs(msg.distance_back + msg.distance_front - 2) < 0.5:
         #     # Maybe at the stopping point?
@@ -126,7 +126,7 @@ class robotTF():
         #         self.use_back = False
         #     else:
         #         self.use_back = True
-        elif msg.distance_front > 5.5 and msg.distance_back < 3.5:
+        elif msg.distance_front > 5.5 and msg.distance_back < 4.0:
             self.use_back = True
 
         # watch out when one distance value is weird!
