@@ -182,7 +182,7 @@ class robotTF():
         if not self.init_origin:
             self.init_origin = True
         
-        self.publish_msg()
+        self.publish_msg(msg.header.stamp)
     
     def __interpolate_point__(self, waypoint, dist):
         # use self.x, self.y and waypoint to get the middle point
@@ -198,11 +198,16 @@ class robotTF():
 
     def possible_to_stop(self, dist, vel):
         # using 2as = v^2 - v0^2
-        return (vel**2 / (2*self.max_a)) > dist
+        required_dist = vel**2 / (2*self.max_a)
+        if required_dist < dist:
+            return True
+        else:
+            return False
+        # return (vel**2 / (2*self.max_a)) > dist
     
-    def publish_msg(self):
+    def publish_msg(self, ref_stamp):
         # first implement robot pose publisher
-        curr_time = rospy.Time.now()
+        curr_time = ref_stamp
         robot_msg = nav_msgs.msg.Odometry()
         robot_msg.header.stamp = curr_time
         robot_msg.header.frame_id = "map"
@@ -294,9 +299,9 @@ class robotTF():
         # currently, directly change the waypoint velocity
         # may need to set it as only current vx (but that can make the control noisy)
         if ret_waypoint.type >= 1:
-            if not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx) and abs(self.x - ret_waypoint.x) < 1:
+            if (not self.possible_to_stop(abs(self.x - ret_waypoint.x), vx)) and (abs(self.x - ret_waypoint.x) < 1):
                 ret_waypoint.vx = 0
-            if not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy)  and abs(self.y - ret_waypoint.y) < 1:
+            if (not self.possible_to_stop(abs(self.y - ret_waypoint.y), vy)) and (abs(self.y - ret_waypoint.y) < 1):
                 ret_waypoint.vy = 0
         
         way_msg = nav_msgs.msg.Odometry()
