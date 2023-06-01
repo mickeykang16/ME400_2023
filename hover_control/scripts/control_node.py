@@ -161,7 +161,7 @@ class HovercraftController:
                 if (abs(vel_error_y) < 0.2):
                     pose_P_y *= 1.2
                 
-                if (abs(pose_error_x) < 0.10 and abs(pose_error_y) < 0.10) or (abs(vel_error_x) > 0.6) or (abs(vel_error_y) > 0.4):
+                if (abs(pose_error_x) < 0.10 and abs(pose_error_y) < 0.10) or (abs(vel_error_x) > 0.6) or (abs(vel_error_y) > 0.5):
                     hover_power = 0.7 * HOVERING_POWER
             
             if self.controller.get_throttle(0) != hover_power:
