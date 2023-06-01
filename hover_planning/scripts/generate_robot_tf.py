@@ -61,7 +61,7 @@ class robotTF():
         self.wall_debug_publisher = rospy.Publisher('/wall_use_back', std_msgs.msg.Bool, queue_size = 10)
 
     def generate_waypoints(self, file_path):
-        path = os.path.join(file_path, "data/waypoints.json")
+        path = os.path.join(file_path, "data/waypoints_fast.json")
         # print(path)
         return_list = []
         stop_list = []
@@ -264,7 +264,7 @@ class robotTF():
             if self.arrive == False:
                 self.arrive = True
                 self.stop_start = curr_time
-            elif (waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 4) or (waypoint.type == 2 and (curr_time - self.stop_start).to_sec() > 0.5):
+            elif (waypoint.type == 1 and (curr_time - self.stop_start).to_sec() > 3.0) or (waypoint.type == 2 and (curr_time - self.stop_start).to_sec() > 0.1):
                 # need to stop
                 self.waypoint_index += 1
                 self.arrive = False

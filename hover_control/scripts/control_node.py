@@ -60,6 +60,7 @@ class HovercraftController:
         self.odom_msg = Odometry()
         self.last_target_time = rospy.Time.now() - rospy.Duration(2)
         self.target_msg = Odometry()
+        self.debug_msg = ControlDebug()
         self.debug_str = ""
         self.controller = PWM_control(bidirectional=True, max = 60.0)
         self.odom_subscriber = rospy.Subscriber("robot_odom", Odometry, self.odom_callback)
@@ -161,8 +162,8 @@ class HovercraftController:
                 if (abs(vel_error_y) < 0.2):
                     pose_P_y *= 1.2
                 
-                if (abs(pose_error_x) < 0.10 and abs(pose_error_y) < 0.10) or (abs(vel_error_x) > 0.6) or (abs(vel_error_y) > 0.5):
-                    hover_power = 0.7 * HOVERING_POWER
+                if (abs(pose_error_x) < 0.10 and abs(pose_error_y) < 0.10) or (abs(vel_error_x) > 0.5) or (abs(vel_error_y) > 0.5):
+                    hover_power = 0.65 * HOVERING_POWER
             
             if self.controller.get_throttle(0) != hover_power:
                 self.controller.set_throttle(0, hover_power)
@@ -201,6 +202,7 @@ class HovercraftController:
         debug_msg.pose_y_error = pose_error_y
         debug_msg.vel_x_error = vel_error_x
         debug_msg.vel_y_error = vel_error_y
+        self.debug_msg = debug_msg
         self.debug_publisher.publish(debug_msg)
             
     def debug_timer_callback(self, event):
@@ -209,10 +211,11 @@ class HovercraftController:
         else:
             mode = "Manual"
         print("Control Mode: ", mode)
-        print("Hovering motor:", self.controller.get_throttle(0), "%")
-        print("FL motor:", self.controller.get_throttle(1), "%")
-        print("FR motor:", self.controller.get_throttle(2), "%")
-        print("Tail motor:", self.controller.get_throttle(3), "%")
+        # print("Hovering motor:", self.controller.get_throttle(0), "%")
+        # print("FL motor:", self.controller.get_throttle(1), "%")
+        # print("FR motor:", self.controller.get_throttle(2), "%")
+        # print("Tail motor:", self.controller.get_throttle(3), "%")
+        print(self.debug_msg)
         print("Debug: ", self.debug_str)
         print("-----------------------------------")
         
@@ -242,8 +245,10 @@ class HovercraftController:
         right_kill = bool(msg.button_r2)
         manual_button = bool(msg.button_cross)
         # pushed both kill switches or manual button, switch to manual mode
-        if (self.is_autonomous and ((left_kill and right_kill) or manual_button)):
+        if ((left_kill and right_kill) or manual_button):
             self.is_autonomous = False
+            self.controller.stop_all()
+            time.sleep(0.5)
         # pushed auto button and not pushed manual button, switch to auto mode
         elif ((not self.is_autonomous) and auto_button and (not manual_button)):
             self.is_autonomous = True
